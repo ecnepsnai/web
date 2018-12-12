@@ -1,0 +1,60 @@
+package api
+
+import (
+	"bytes"
+	"encoding/json"
+	"io/ioutil"
+	"net/http"
+
+	"github.com/julienschmidt/httprouter"
+)
+
+// MockRequest generate a mock request for testing your handlers
+func MockRequest(userData interface{}, params map[string]string, body interface{}) Request {
+	var p []httprouter.Param
+
+	for k, v := range params {
+		p = append(p, httprouter.Param{
+			Key:   k,
+			Value: v,
+		})
+	}
+
+	var data []byte
+	if body != nil {
+		d, err := json.Marshal(&body)
+		if err != nil {
+			panic(err)
+		}
+		data = d
+	}
+
+	r := Request{
+		HTTP: &http.Request{
+			Body: ioutil.NopCloser(bytes.NewReader(data)),
+			Header: http.Header{
+				"User-Agent": []string{"go test"},
+			},
+		},
+		Writer: mockHTTPWriter{},
+		Params: p,
+	}
+
+	if userData != nil {
+		r.UserData = userData
+	}
+
+	return r
+}
+
+type mockHTTPWriter struct{}
+
+func (m mockHTTPWriter) Header() http.Header {
+	return http.Header{}
+}
+
+func (m mockHTTPWriter) Write(b []byte) (int, error) {
+	return len(b), nil
+}
+
+func (m mockHTTPWriter) WriteHeader(statusCode int) {}
