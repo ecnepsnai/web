@@ -1,48 +1,150 @@
-package api
+package web
 
 import (
-	"crypto/rand"
-	"encoding/hex"
-	"os"
+	"io/ioutil"
+	"net/http"
 	"testing"
 )
 
-var Verbose bool
-var server *Server
+func TestAPIAddRoutes(t *testing.T) {
+	handle := func(request Request) (interface{}, *Error) {
+		return true, nil
+	}
+	options := HandleOptions{}
 
-func isVerbose() bool {
-	for _, arg := range os.Args {
-		if arg == "-test.v=true" {
-			return true
-		}
+	path := randomString(5)
+	server.API.GET("/"+path, handle, options)
+	server.API.HEAD("/"+path, handle, options)
+	server.API.OPTIONS("/"+path, handle, options)
+	server.API.POST("/"+path, handle, options)
+	server.API.PUT("/"+path, handle, options)
+	server.API.PATCH("/"+path, handle, options)
+	server.API.DELETE("/"+path, handle, options)
+}
+
+func TestAPIAuthenticated(t *testing.T) {
+	handle := func(request Request) (interface{}, *Error) {
+		return true, nil
+	}
+	authenticate := func(request *http.Request) interface{} {
+		return 1
+	}
+	options := HandleOptions{
+		AuthenticateMethod: authenticate,
 	}
 
-	return false
+	path := randomString(5)
+
+	server.API.GET("/"+path, handle, options)
+
+	resp, err := http.Get("http://localhost:9557/" + path)
+	if err != nil {
+		t.Errorf("Network error: %s", err.Error())
+	}
+	if resp.StatusCode != 200 {
+		t.Errorf("Unexpected HTTP status code. Expected %d got %d", 200, resp.StatusCode)
+	}
+	_, err = ioutil.ReadAll(resp.Body)
+	if err != nil {
+		t.Errorf("Error reading response body: %s", err.Error())
+	}
 }
 
-func testSetup() {
-	server = New("127.0.0.1:9557")
-	go func() {
-		if err := server.Start(); err != nil {
-			panic(err)
-		}
-	}()
+func TestAPIUnauthenticated(t *testing.T) {
+	handle := func(request Request) (interface{}, *Error) {
+		return true, nil
+	}
+	authenticate := func(request *http.Request) interface{} {
+		return nil
+	}
+	options := HandleOptions{
+		AuthenticateMethod: authenticate,
+	}
+
+	path := randomString(5)
+
+	server.API.GET("/"+path, handle, options)
+
+	resp, err := http.Get("http://localhost:9557/" + path)
+	if err != nil {
+		t.Errorf("Network error: %s", err.Error())
+	}
+	if resp.StatusCode != 401 {
+		t.Errorf("Unexpected HTTP status code. Expected %d got %d", 401, resp.StatusCode)
+	}
+	_, err = ioutil.ReadAll(resp.Body)
+	if err != nil {
+		t.Errorf("Error reading response body: %s", err.Error())
+	}
 }
 
-func testTeardown() {
-	server.Stop()
+func TestAPINotFound(t *testing.T) {
+	path := randomString(5)
+	resp, err := http.Get("http://localhost:9557/" + path)
+	if err != nil {
+		t.Errorf("Network error: %s", err.Error())
+	}
+	if resp.StatusCode != 404 {
+		t.Errorf("Unexpected HTTP status code. Expected %d got %d", 404, resp.StatusCode)
+	}
+	_, err = ioutil.ReadAll(resp.Body)
+	if err != nil {
+		t.Errorf("Error reading response body: %s", err.Error())
+	}
 }
 
-func TestMain(m *testing.M) {
-	Verbose = isVerbose()
-	testSetup()
-	retCode := m.Run()
-	testTeardown()
-	os.Exit(retCode)
+func TestAPIMethodNotAllowed(t *testing.T) {
+	handle := func(request Request) (interface{}, *Error) {
+		return true, nil
+	}
+	authenticate := func(request *http.Request) interface{} {
+		return nil
+	}
+	options := HandleOptions{
+		AuthenticateMethod: authenticate,
+	}
+
+	path := randomString(5)
+
+	server.API.POST("/"+path, handle, options)
+
+	resp, err := http.Get("http://localhost:9557/" + path)
+	if err != nil {
+		t.Errorf("Network error: %s", err.Error())
+	}
+	if resp.StatusCode != 405 {
+		t.Errorf("Unexpected HTTP status code. Expected %d got %d", 405, resp.StatusCode)
+	}
+	_, err = ioutil.ReadAll(resp.Body)
+	if err != nil {
+		t.Errorf("Error reading response body: %s", err.Error())
+	}
 }
 
-func randomString(length uint16) string {
-	randB := make([]byte, length)
-	rand.Read(randB)
-	return hex.EncodeToString(randB)
+func TestAPIHandleError(t *testing.T) {
+	handle := func(request Request) (interface{}, *Error) {
+		return nil, ValidationError("error")
+	}
+	authenticate := func(request *http.Request) interface{} {
+		return 1
+	}
+	options := HandleOptions{
+		AuthenticateMethod: authenticate,
+	}
+
+	path := randomString(5)
+
+	server.API.GET("/"+path, handle, options)
+
+	resp, err := http.Get("http://localhost:9557/" + path)
+	if err != nil {
+		t.Errorf("Network error: %s", err.Error())
+	}
+	if resp.StatusCode != 401 {
+		t.Errorf("Unexpected HTTP status code. Expected %d got %d", 401, resp.StatusCode)
+	}
+	_, err = ioutil.ReadAll(resp.Body)
+	if err != nil {
+		t.Errorf("Error reading response body: %s", err.Error())
+	}
 }

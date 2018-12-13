@@ -1,4 +1,4 @@
-package api
+package web
 
 // CommonErrors common errors
 var CommonErrors = struct {

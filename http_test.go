@@ -1,4 +1,4 @@
-package api
+package web
 
 import (
 	"io/ioutil"
@@ -6,24 +6,25 @@ import (
 	"testing"
 )
 
-func TestAddRoutes(t *testing.T) {
-	handle := func(request Request) (interface{}, *Error) {
-		return true, nil
+func TestHTTPAddRoutes(t *testing.T) {
+	handle := func(request Request) Response {
+		return Response{}
 	}
 	options := HandleOptions{}
 
-	server.APIGET("/", handle, options)
-	server.APIHEAD("/", handle, options)
-	server.APIOPTIONS("/", handle, options)
-	server.APIPOST("/", handle, options)
-	server.APIPUT("/", handle, options)
-	server.APIPATCH("/", handle, options)
-	server.APIDELETE("/", handle, options)
+	path := randomString(5)
+	server.HTTP.GET("/"+path, handle, options)
+	server.HTTP.HEAD("/"+path, handle, options)
+	server.HTTP.OPTIONS("/"+path, handle, options)
+	server.HTTP.POST("/"+path, handle, options)
+	server.HTTP.PUT("/"+path, handle, options)
+	server.HTTP.PATCH("/"+path, handle, options)
+	server.HTTP.DELETE("/"+path, handle, options)
 }
 
-func TestAuthenticated(t *testing.T) {
-	handle := func(request Request) (interface{}, *Error) {
-		return true, nil
+func TestHTTPAuthenticated(t *testing.T) {
+	handle := func(request Request) Response {
+		return Response{}
 	}
 	authenticate := func(request *http.Request) interface{} {
 		return 1
@@ -34,7 +35,7 @@ func TestAuthenticated(t *testing.T) {
 
 	path := randomString(5)
 
-	server.APIGET("/"+path, handle, options)
+	server.HTTP.GET("/"+path, handle, options)
 
 	resp, err := http.Get("http://localhost:9557/" + path)
 	if err != nil {
@@ -49,9 +50,9 @@ func TestAuthenticated(t *testing.T) {
 	}
 }
 
-func TestUnauthenticated(t *testing.T) {
-	handle := func(request Request) (interface{}, *Error) {
-		return true, nil
+func TestHTTPUnauthenticated(t *testing.T) {
+	handle := func(request Request) Response {
+		return Response{}
 	}
 	authenticate := func(request *http.Request) interface{} {
 		return nil
@@ -62,7 +63,7 @@ func TestUnauthenticated(t *testing.T) {
 
 	path := randomString(5)
 
-	server.APIGET("/"+path, handle, options)
+	server.HTTP.GET("/"+path, handle, options)
 
 	resp, err := http.Get("http://localhost:9557/" + path)
 	if err != nil {
@@ -77,7 +78,7 @@ func TestUnauthenticated(t *testing.T) {
 	}
 }
 
-func TestNotFound(t *testing.T) {
+func TestHTTPNotFound(t *testing.T) {
 	path := randomString(5)
 	resp, err := http.Get("http://localhost:9557/" + path)
 	if err != nil {
@@ -92,9 +93,9 @@ func TestNotFound(t *testing.T) {
 	}
 }
 
-func TestMethodNotAllowed(t *testing.T) {
-	handle := func(request Request) (interface{}, *Error) {
-		return true, nil
+func TestHTTPMethodNotAllowed(t *testing.T) {
+	handle := func(request Request) Response {
+		return Response{}
 	}
 	authenticate := func(request *http.Request) interface{} {
 		return nil
@@ -105,7 +106,7 @@ func TestMethodNotAllowed(t *testing.T) {
 
 	path := randomString(5)
 
-	server.APIPOST("/"+path, handle, options)
+	server.HTTP.POST("/"+path, handle, options)
 
 	resp, err := http.Get("http://localhost:9557/" + path)
 	if err != nil {
@@ -120,9 +121,11 @@ func TestMethodNotAllowed(t *testing.T) {
 	}
 }
 
-func TestHandleError(t *testing.T) {
-	handle := func(request Request) (interface{}, *Error) {
-		return nil, CommonErrors.Forbidden
+func TestHTTPHandleError(t *testing.T) {
+	handle := func(request Request) Response {
+		return Response{
+			Status: 403,
+		}
 	}
 	authenticate := func(request *http.Request) interface{} {
 		return 1
@@ -133,7 +136,7 @@ func TestHandleError(t *testing.T) {
 
 	path := randomString(5)
 
-	server.APIGET("/"+path, handle, options)
+	server.HTTP.GET("/"+path, handle, options)
 
 	resp, err := http.Get("http://localhost:9557/" + path)
 	if err != nil {
