@@ -103,9 +103,7 @@ func (h HTTP) httpRequestHandler(endpointHandle HTTPHandle, userData interface{}
 		code := 200
 		if response.Status != 0 {
 			code = response.Status
-
 		}
-
 		h.server.log.Info("HTTP Request: %s %s -> %d (%s)", r.Method, r.RequestURI, code, elapsed)
 		w.WriteHeader(code)
 
@@ -114,10 +112,11 @@ func (h HTTP) httpRequestHandler(endpointHandle HTTPHandle, userData interface{}
 			for {
 				rbuf := make([]byte, readLength)
 				length, err := response.Reader.Read(rbuf)
-				if err.Error() == "EOF" {
-					break
-				}
 				if err != nil {
+					if err.Error() == "EOF" {
+						break
+					}
+					h.server.log.Error("Error reading response reader: %s", err.Error())
 					w.WriteHeader(500)
 					return
 				}
@@ -126,10 +125,12 @@ func (h HTTP) httpRequestHandler(endpointHandle HTTPHandle, userData interface{}
 				}
 				_, err = w.Write(rbuf)
 				if err != nil {
+					h.server.log.Error("Error writing response: %s", err.Error())
 					w.WriteHeader(500)
 					return
 				}
 			}
+			response.Reader.Close()
 		}
 	}
 }
