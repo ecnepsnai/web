@@ -88,6 +88,7 @@ func (a API) apiRequestHandler(endpointHandle APIHandle, userData interface{}) h
 			HTTP:     r,
 			Params:   ps,
 			UserData: userData,
+			log:      a.server.log,
 		}
 
 		start := time.Now()

@@ -85,6 +85,7 @@ func (h HTTP) httpRequestHandler(endpointHandle HTTPHandle, userData interface{}
 			HTTP:     r,
 			Params:   ps,
 			UserData: userData,
+			log:      h.server.log,
 		}
 		start := time.Now()
 		response := endpointHandle(request)
