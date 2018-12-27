@@ -11,7 +11,7 @@ type Error struct {
 // ValidationError conveience method to make a error object for validation errors
 func ValidationError(format string, v ...interface{}) *Error {
 	return &Error{
-		Code:    401,
+		Code:    400,
 		Message: fmt.Sprintf(format, v...),
 	}
 }
