@@ -12,9 +12,6 @@ type HTTP struct {
 	server *Server
 }
 
-// HTTPHandle describes a method signature for handling an HTTP request
-type HTTPHandle func(request Request) Response
-
 // Static serve static files matching the request path to the given directory
 func (h HTTP) Static(path string, directory string) {
 	h.server.log.Debug("Serving files from '%s' matching path '%s'", directory, path)
@@ -65,11 +62,16 @@ func (h HTTP) httpAuthenticationHandler(endpointHandle HTTPHandle, options Handl
 	if options.AuthenticateMethod != nil {
 		return func(w http.ResponseWriter, request *http.Request, ps httprouter.Params) {
 			userData := options.AuthenticateMethod(request)
-			if userData == nil {
-				h.server.log.Warn("Rejected authenticated request")
-				w.Header().Set("Content-Type", "text/html")
-				w.WriteHeader(http.StatusUnauthorized)
-				w.Write([]byte("<html><body><strong>Unauthorized</strong>"))
+			if isUserdataNil(userData) {
+				if options.UnauthorizedMethod == nil {
+					h.server.log.Warn("Rejected authenticated request")
+					w.Header().Set("Content-Type", "text/html")
+					w.WriteHeader(http.StatusUnauthorized)
+					w.Write([]byte("<html><body><strong>Unauthorized</strong>"))
+					return
+				}
+
+				options.UnauthorizedMethod(w, request)
 			} else {
 				h.httpRequestHandler(endpointHandle, userData)(w, request, ps)
 			}

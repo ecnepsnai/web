@@ -55,7 +55,8 @@ func TestAPIUnauthenticated(t *testing.T) {
 		return true, nil
 	}
 	authenticate := func(request *http.Request) interface{} {
-		return nil
+		var object *string
+		return object
 	}
 	options := HandleOptions{
 		AuthenticateMethod: authenticate,
@@ -140,11 +141,46 @@ func TestAPIHandleError(t *testing.T) {
 	if err != nil {
 		t.Errorf("Network error: %s", err.Error())
 	}
-	if resp.StatusCode != 401 {
-		t.Errorf("Unexpected HTTP status code. Expected %d got %d", 401, resp.StatusCode)
+	if resp.StatusCode != 400 {
+		t.Errorf("Unexpected HTTP status code. Expected %d got %d", 400, resp.StatusCode)
 	}
 	_, err = ioutil.ReadAll(resp.Body)
 	if err != nil {
 		t.Errorf("Error reading response body: %s", err.Error())
+	}
+}
+
+func TestAPIUnauthorizedMethod(t *testing.T) {
+	handle := func(request Request) (interface{}, *Error) {
+		return true, nil
+	}
+	authenticate := func(request *http.Request) interface{} {
+		return nil
+	}
+
+	location := "somewhere-else"
+
+	unauthorized := func(w http.ResponseWriter, request *http.Request) {
+		w.Header().Set("Location", location)
+		w.WriteHeader(410)
+	}
+	options := HandleOptions{
+		AuthenticateMethod: authenticate,
+		UnauthorizedMethod: unauthorized,
+	}
+
+	path := randomString(5)
+
+	server.API.GET("/"+path, handle, options)
+
+	resp, err := http.Get("http://localhost:9557/" + path)
+	if err != nil {
+		t.Errorf("Network error: %s", err.Error())
+	}
+	if resp.StatusCode != 410 {
+		t.Errorf("Unexpected HTTP status code. Expected %d got %d", 410, resp.StatusCode)
+	}
+	if resp.Header.Get("Location") != location {
+		t.Errorf("Missing expected HTTP header. Expected '%s' got '%s'", location, resp.Header.Get("Location"))
 	}
 }

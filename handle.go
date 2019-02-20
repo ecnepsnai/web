@@ -1,0 +1,29 @@
+package web
+
+import (
+	"net/http"
+	"reflect"
+)
+
+// APIHandle describes a method signature for handling an API request
+type APIHandle func(request Request) (interface{}, *Error)
+
+// HTTPHandle describes a method signature for handling an HTTP request
+type HTTPHandle func(request Request) Response
+
+// HandleOptions describes options for a route
+type HandleOptions struct {
+	// AuthenticateMethod method called to determine if a request is properly authenticated or not.
+	// Return nil to signal an unauthenticated request, which will be rejected
+	// Return anything else and that will be the "UserData" on the request object
+	// Optional, Omit this entirly if no authentication is needed for the request
+	AuthenticateMethod func(request *http.Request) interface{}
+	// UnauthorizedMethod method called when an unauthenticated request occurs (AuthenticateMethod returned nil)
+	// to customize the response seen by the user.
+	// Optional, Omit this to have a default response.
+	UnauthorizedMethod func(w http.ResponseWriter, request *http.Request)
+}
+
+func isUserdataNil(userData interface{}) bool {
+	return userData == nil || (reflect.ValueOf(userData).Kind() == reflect.Ptr && reflect.ValueOf(userData).IsNil())
+}

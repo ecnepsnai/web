@@ -13,14 +13,6 @@ type API struct {
 	server *Server
 }
 
-// APIHandle describes a method signature for handling an API request
-type APIHandle func(request Request) (interface{}, *Error)
-
-// HandleOptions describes options for a route
-type HandleOptions struct {
-	AuthenticateMethod func(request *http.Request) interface{}
-}
-
 // GET register a new HTTP GET request handle
 func (a API) GET(path string, handle APIHandle, options HandleOptions) {
 	a.registerAPIEndpoint("GET", path, handle, options)
@@ -65,11 +57,16 @@ func (a API) apiAuthenticationHandler(endpointHandle APIHandle, options HandleOp
 	if options.AuthenticateMethod != nil {
 		return func(w http.ResponseWriter, request *http.Request, ps httprouter.Params) {
 			userData := options.AuthenticateMethod(request)
-			if userData == nil {
-				a.server.log.Warn("Rejected authenticated request")
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusUnauthorized)
-				json.NewEncoder(w).Encode(Error{401, "Unauthorized"})
+			if isUserdataNil(userData) {
+				if options.UnauthorizedMethod == nil {
+					a.server.log.Warn("Rejected authenticated request")
+					w.Header().Set("Content-Type", "application/json")
+					w.WriteHeader(http.StatusUnauthorized)
+					json.NewEncoder(w).Encode(Error{401, "Unauthorized"})
+					return
+				}
+
+				options.UnauthorizedMethod(w, request)
 			} else {
 				a.apiRequestHandler(endpointHandle, userData)(w, request, ps)
 			}
