@@ -1,5 +1,10 @@
 # Web
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/ecnepsnai/web?style=flat-square)](https://goreportcard.com/report/github.com/ecnepsnai/web)
+[![Godoc](http://img.shields.io/badge/go-documentation-blue.svg?style=flat-square)](https://godoc.org/github.com/ecnepsnai/web)
+[![Releases](https://img.shields.io/github/release/ecnepsnai/web/all.svg?style=flat-square)](https://github.com/ecnepsnai/web/releases)
+[![LICENSE](https://img.shields.io/github/license/ecnepsnai/web.svg?style=flat-square)](https://github.com/ecnepsnai/web/blob/master/LICENSE)
+
 Web is a simple HTTP server in Golang that is designed for both front and back-end web
 applications.
 
@@ -67,7 +72,9 @@ authenticatedOptions := HandleOptions{
 		if cookie.Value != "1" {
 			return nil
 		}
-		return userInfo
+		return map[string]string{
+			"foo": "bar",
+		}
 	},
 }
 server.API.GET("/user", userHandle, authenticatedOptions)
