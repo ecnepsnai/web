@@ -2,6 +2,7 @@ package web
 
 import (
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/julienschmidt/httprouter"
@@ -55,12 +56,25 @@ func (h HTTP) DELETE(path string, handle HTTPHandle, options HandleOptions) {
 
 func (h HTTP) registerHTTPEndpoint(method string, path string, handle HTTPHandle, options HandleOptions) {
 	h.server.log.Debug("Register HTTP %s %s", method, path)
-	h.server.router.Handle(method, path, h.httpAuthenticationHandler(handle, options))
+	h.server.router.Handle(method, path, h.httpPreHandle(handle, options))
 }
 
-func (h HTTP) httpAuthenticationHandler(endpointHandle HTTPHandle, options HandleOptions) httprouter.Handle {
-	if options.AuthenticateMethod != nil {
-		return func(w http.ResponseWriter, request *http.Request, ps httprouter.Params) {
+func (h HTTP) httpPreHandle(endpointHandle HTTPHandle, options HandleOptions) httprouter.Handle {
+	return func(w http.ResponseWriter, request *http.Request, ps httprouter.Params) {
+		if options.MaxBodyLength > 0 {
+			// We don't need to worry about this not being a number. Go's own HTTP server
+			// won't respond to requests like these
+			length, _ := strconv.ParseUint(request.Header.Get("Content-Length"), 10, 64)
+			h.server.log.Debug("Body length: %d", length)
+
+			if length > options.MaxBodyLength {
+				h.server.log.Error("Rejecting HTTP request with body length %d", length)
+				w.WriteHeader(413)
+				return
+			}
+		}
+
+		if options.AuthenticateMethod != nil {
 			userData := options.AuthenticateMethod(request)
 			if isUserdataNil(userData) {
 				if options.UnauthorizedMethod == nil {
@@ -73,14 +87,15 @@ func (h HTTP) httpAuthenticationHandler(endpointHandle HTTPHandle, options Handl
 
 				options.UnauthorizedMethod(w, request)
 			} else {
-				h.httpRequestHandler(endpointHandle, userData)(w, request, ps)
+				h.httpPostHandle(endpointHandle, userData)(w, request, ps)
 			}
+			return
 		}
+		h.httpPostHandle(endpointHandle, nil)(w, request, ps)
 	}
-	return h.httpRequestHandler(endpointHandle, nil)
 }
 
-func (h HTTP) httpRequestHandler(endpointHandle HTTPHandle, userData interface{}) httprouter.Handle {
+func (h HTTP) httpPostHandle(endpointHandle HTTPHandle, userData interface{}) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		request := Request{
 			Writer:   w,
@@ -98,6 +113,7 @@ func (h HTTP) httpRequestHandler(endpointHandle HTTPHandle, userData interface{}
 		} else {
 			w.Header().Set("Content-Type", response.ContentType)
 		}
+		h.server.log.Debug("Response content type '%s'", w.Header().Get("Content-Type"))
 
 		for k, v := range response.Headers {
 			w.Header().Set(k, v)

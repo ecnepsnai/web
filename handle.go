@@ -22,6 +22,10 @@ type HandleOptions struct {
 	// to customize the response seen by the user.
 	// Optional, Omit this to have a default response.
 	UnauthorizedMethod func(w http.ResponseWriter, request *http.Request)
+	// MaxBodyLength defines the maximum length accepted for any HTTP request body. Requests that
+	// exceed this limit will receive a 413 Payload Too Large response.
+	// The default value of 0 will not reject requests with large bodies.
+	MaxBodyLength uint64
 }
 
 func isUserdataNil(userData interface{}) bool {

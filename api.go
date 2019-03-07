@@ -3,6 +3,7 @@ package web
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/julienschmidt/httprouter"
@@ -50,12 +51,25 @@ func (a API) DELETE(path string, handle APIHandle, options HandleOptions) {
 
 func (a API) registerAPIEndpoint(method string, path string, handle APIHandle, options HandleOptions) {
 	a.server.log.Debug("Register API %s %s", method, path)
-	a.server.router.Handle(method, path, a.apiAuthenticationHandler(handle, options))
+	a.server.router.Handle(method, path, a.apiPreHandle(handle, options))
 }
 
-func (a API) apiAuthenticationHandler(endpointHandle APIHandle, options HandleOptions) httprouter.Handle {
-	if options.AuthenticateMethod != nil {
-		return func(w http.ResponseWriter, request *http.Request, ps httprouter.Params) {
+func (a API) apiPreHandle(endpointHandle APIHandle, options HandleOptions) httprouter.Handle {
+	return func(w http.ResponseWriter, request *http.Request, ps httprouter.Params) {
+		if options.MaxBodyLength > 0 {
+			// We don't need to worry about this not being a number. Go's own HTTP server
+			// won't respond to requests like these
+			length, _ := strconv.ParseUint(request.Header.Get("Content-Length"), 10, 64)
+			a.server.log.Debug("Body length: %d", length)
+
+			if length > options.MaxBodyLength {
+				a.server.log.Error("Rejecting HTTP request with body length %d", length)
+				w.WriteHeader(413)
+				return
+			}
+		}
+
+		if options.AuthenticateMethod != nil {
 			userData := options.AuthenticateMethod(request)
 			if isUserdataNil(userData) {
 				if options.UnauthorizedMethod == nil {
@@ -68,14 +82,14 @@ func (a API) apiAuthenticationHandler(endpointHandle APIHandle, options HandleOp
 
 				options.UnauthorizedMethod(w, request)
 			} else {
-				a.apiRequestHandler(endpointHandle, userData)(w, request, ps)
+				a.apiPostHandle(endpointHandle, userData)(w, request, ps)
 			}
 		}
+		a.apiPostHandle(endpointHandle, nil)(w, request, ps)
 	}
-	return a.apiRequestHandler(endpointHandle, nil)
 }
 
-func (a API) apiRequestHandler(endpointHandle APIHandle, userData interface{}) httprouter.Handle {
+func (a API) apiPostHandle(endpointHandle APIHandle, userData interface{}) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		w.Header().Set("Content-Type", "application/json")
 

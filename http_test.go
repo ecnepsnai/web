@@ -1,6 +1,7 @@
 package web
 
 import (
+	"bytes"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -297,5 +298,31 @@ func TestHTTPUnauthorizedMethod(t *testing.T) {
 	}
 	if resp.Header.Get("Location") != location {
 		t.Errorf("Missing expected HTTP header. Expected '%s' got '%s'", location, resp.Header.Get("Location"))
+	}
+}
+
+func TestHTTPLargeBody(t *testing.T) {
+	handle := func(request Request) Response {
+		return Response{}
+	}
+	options := HandleOptions{
+		MaxBodyLength: 10,
+	}
+
+	path := randomString(5)
+	body := bytes.NewReader([]byte(randomString(50)))
+
+	server.HTTP.POST("/"+path, handle, options)
+
+	resp, err := http.Post("http://localhost:9557/"+path, "text-plain", body)
+	if err != nil {
+		t.Errorf("Network error: %s", err.Error())
+	}
+	if resp.StatusCode != 413 {
+		t.Errorf("Unexpected HTTP status code. Expected %d got %d", 413, resp.StatusCode)
+	}
+	_, err = ioutil.ReadAll(resp.Body)
+	if err != nil {
+		t.Errorf("Error reading response body: %s", err.Error())
 	}
 }

@@ -38,6 +38,10 @@ func testSetup() {
 	}
 
 	server = New("127.0.0.1:9557")
+	testStartServer()
+}
+
+func testStartServer() {
 	go func() {
 		if err := server.Start(); err != nil {
 			panic(err)
