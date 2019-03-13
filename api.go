@@ -84,6 +84,7 @@ func (a API) apiPreHandle(endpointHandle APIHandle, options HandleOptions) httpr
 			} else {
 				a.apiPostHandle(endpointHandle, userData)(w, request, ps)
 			}
+			return
 		}
 		a.apiPostHandle(endpointHandle, nil)(w, request, ps)
 	}

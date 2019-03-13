@@ -212,6 +212,43 @@ func TestAPILargeBody(t *testing.T) {
 	}
 }
 
+func TestAPIValidJSON(t *testing.T) {
+	handle := func(request Request) (interface{}, *Error) {
+		type exampleType struct {
+			Foo string
+			Bar string
+		}
+
+		example := exampleType{}
+		if err := request.Decode(&example); err != nil {
+			return nil, CommonErrors.BadRequest
+		}
+		return true, nil
+	}
+	options := HandleOptions{
+		AuthenticateMethod: func(request *http.Request) interface{} {
+			return true
+		},
+	}
+
+	path := randomString(5)
+	body := bytes.NewReader([]byte("{\"Foo\": \"1\", \"Bar\": \"2\"}"))
+
+	server.API.POST("/"+path, handle, options)
+
+	resp, err := http.Post("http://localhost:9557/"+path, "application/json", body)
+	if err != nil {
+		t.Errorf("Network error: %s", err.Error())
+	}
+	if resp.StatusCode != 200 {
+		t.Errorf("Unexpected HTTP status code. Expected %d got %d", 200, resp.StatusCode)
+	}
+	_, err = ioutil.ReadAll(resp.Body)
+	if err != nil {
+		t.Errorf("Error reading response body: %s", err.Error())
+	}
+}
+
 func TestAPIInvalidJSON(t *testing.T) {
 	handle := func(request Request) (interface{}, *Error) {
 		type exampleType struct {
