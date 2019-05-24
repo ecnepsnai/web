@@ -1,6 +1,7 @@
 package web
 
 import (
+	"io"
 	"net/http"
 	"strconv"
 	"time"
@@ -127,29 +128,13 @@ func (h HTTP) httpPostHandle(endpointHandle HTTPHandle, userData interface{}) ht
 		w.WriteHeader(code)
 
 		if response.Reader != nil {
-			readLength := 1024
-			for {
-				rbuf := make([]byte, readLength)
-				length, err := response.Reader.Read(rbuf)
-				if err != nil {
-					if err.Error() == "EOF" {
-						break
-					}
-					h.server.log.Error("Error reading response reader: %s", err.Error())
-					w.WriteHeader(500)
-					return
-				}
-				if length == 0 {
-					break
-				}
-				_, err = w.Write(rbuf)
-				if err != nil {
-					h.server.log.Error("Error writing response: %s", err.Error())
-					w.WriteHeader(500)
-					return
-				}
-			}
+			_, err := io.CopyBuffer(w, response.Reader, nil)
 			response.Reader.Close()
+			if err != nil {
+				h.server.log.Error("Error writing response: %s", err.Error())
+				w.WriteHeader(500)
+				return
+			}
 		}
 	}
 }
