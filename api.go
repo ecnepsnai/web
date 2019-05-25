@@ -118,25 +118,3 @@ func (a API) apiPostHandle(endpointHandle APIHandle, userData interface{}) httpr
 		json.NewEncoder(w).Encode(response)
 	}
 }
-
-type notFoundHandler struct {
-	server *Server
-}
-
-func (n notFoundHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	n.server.log.Info("HTTP %s %s -> %d", r.Method, r.RequestURI, 404)
-	w.WriteHeader(404)
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(Error{404, "Not found"})
-}
-
-type methodNotAllowedHandler struct {
-	server *Server
-}
-
-func (n methodNotAllowedHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	n.server.log.Info("HTTP %s %s -> %d", r.Method, r.RequestURI, 405)
-	w.WriteHeader(405)
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(Error{405, "Method not allowed"})
-}
