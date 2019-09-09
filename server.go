@@ -72,7 +72,7 @@ type notFoundHandler struct {
 }
 
 func (n notFoundHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	n.server.log.Info("HTTP %s %s -> %d", r.Method, r.RequestURI, 404)
+	n.server.log.Debug("HTTP %s %s -> %d", r.Method, r.RequestURI, 404)
 	if n.server.NotFoundHandler != nil {
 		n.server.NotFoundHandler(w, r)
 		return
@@ -86,7 +86,7 @@ type methodNotAllowedHandler struct {
 }
 
 func (n methodNotAllowedHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	n.server.log.Info("HTTP %s %s -> %d", r.Method, r.RequestURI, 405)
+	n.server.log.Debug("HTTP %s %s -> %d", r.Method, r.RequestURI, 405)
 	if n.server.MethodNotAllowedHandler != nil {
 		n.server.MethodNotAllowedHandler(w, r)
 		return

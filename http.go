@@ -124,7 +124,7 @@ func (h HTTP) httpPostHandle(endpointHandle HTTPHandle, userData interface{}) ht
 		if response.Status != 0 {
 			code = response.Status
 		}
-		h.server.log.Info("HTTP Request: %s %s -> %d (%s)", r.Method, r.RequestURI, code, elapsed)
+		h.server.log.Debug("HTTP Request: %s %s -> %d (%s)", r.Method, r.RequestURI, code, elapsed)
 		w.WriteHeader(code)
 
 		if response.Reader != nil {

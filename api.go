@@ -114,7 +114,7 @@ func (a API) apiPostHandle(endpointHandle APIHandle, userData interface{}) httpr
 			response.Code = 200
 			response.Data = data
 		}
-		a.server.log.Info("API Request: %s %s -> %d (%s)", r.Method, r.RequestURI, response.Code, elapsed)
+		a.server.log.Debug("API Request: %s %s -> %d (%s)", r.Method, r.RequestURI, response.Code, elapsed)
 		json.NewEncoder(w).Encode(response)
 	}
 }
