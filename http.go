@@ -114,7 +114,6 @@ func (h HTTP) httpPostHandle(endpointHandle HTTPHandle, userData interface{}) ht
 		} else {
 			w.Header().Set("Content-Type", response.ContentType)
 		}
-		h.server.log.Debug("Response content type '%s'", w.Header().Get("Content-Type"))
 
 		for k, v := range response.Headers {
 			w.Header().Set(k, v)

@@ -60,7 +60,6 @@ func (a API) apiPreHandle(endpointHandle APIHandle, options HandleOptions) httpr
 			// We don't need to worry about this not being a number. Go's own HTTP server
 			// won't respond to requests like these
 			length, _ := strconv.ParseUint(request.Header.Get("Content-Length"), 10, 64)
-			a.server.log.Debug("Body length: %d", length)
 
 			if length > options.MaxBodyLength {
 				a.server.log.Error("Rejecting HTTP request with body length %d", length)
