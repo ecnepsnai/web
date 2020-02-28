@@ -14,7 +14,6 @@ import (
 var Verbose bool
 var server *Server
 var tmpDir string
-var logFile *logtic.File
 
 func isTestVerbose() bool {
 	for _, arg := range os.Args {
@@ -52,17 +51,15 @@ func testStartServer() {
 func testTeardown() {
 	server.Stop()
 	os.RemoveAll(tmpDir)
-	if logFile != nil {
-		logFile.Close()
-	}
+	logtic.Close()
 }
 
 func initLogtic() {
-	file, _, err := logtic.New(path.Join(tmpDir, "web.log"), logtic.LevelDebug, "test runner")
-	if err != nil {
+	logtic.Log.FilePath = path.Join(tmpDir, "web.log")
+	logtic.Log.Level = logtic.LevelDebug
+	if err := logtic.Open(); err != nil {
 		panic(err)
 	}
-	logFile = file
 }
 
 func TestMain(m *testing.M) {
