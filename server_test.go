@@ -126,7 +126,7 @@ func TestMethodNotAllowed(t *testing.T) {
 	}
 
 	path := "/" + randomString(12)
-	server.HTTP.DELETE(path, HTTPHandle(func(request Request) Response {
+	server.HTTP.DELETE(path, HTTPHandle(func(request Request, writer Writer) Response {
 		return Response{}
 	}), HandleOptions{})
 

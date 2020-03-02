@@ -20,6 +20,24 @@ JSON API Example
 	options := web.HandleOptions{}
 	server.API.GET("/time", handle, options)
 
+File-Serving Example
+
+	server = web.New("127.0.0.1:8080")
+	if err := server.Start(); err != nil {
+		panic(err)
+	}
+
+	handle := func(request web.Request, writer web.Writer) web.Response {
+		f, err := os.Open("/foo/bar")
+		if err != nil {
+			return CommonErrors.ServerError
+		}
+		return Response{
+			Reader: f,
+		}
+	}
+	options := HandleOptions{}
+	server.HTTP.GET("/file", handle, options)
 
 Authentication Example
 
@@ -69,5 +87,36 @@ Authentication Example
 		},
 	}
 	server.API.GET("/user", userHandle, authenticatedOptions)
+
+Websocket Example
+
+	server = web.New("127.0.0.1:8080")
+	if err := server.Start(); err != nil {
+		panic(err)
+	}
+
+	type questionType struct{
+		Name string
+	}
+
+	type answerType struct{
+		Reply string
+	}
+
+	handle := func(request web.Request, conn web.WSConn) {
+		question := questionType{}
+		if err := conn.ReadJSON(&question); err != nil {
+			return
+		}
+
+		reply := answerType{
+			Reply: "Hello, " + question.Name
+		}
+		if err := conn.WriteJSON(&reply); err != nil {
+			return
+		}
+	}
+	options := web.HandleOptions{}
+	server.Socket("/greeting", handle, options)
 */
 package web

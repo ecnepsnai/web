@@ -36,7 +36,6 @@ func MockRequest(userData interface{}, params map[string]string, body interface{
 				"User-Agent": []string{"go test"},
 			},
 		},
-		Writer: mockHTTPWriter{},
 		Params: p,
 	}
 

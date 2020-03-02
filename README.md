@@ -8,13 +8,15 @@
 Web is a simple HTTP server in Golang that is designed for both front and back-end web
 applications.
 
-It includes a powerful JSON-based REST API framework and a simple-to-use HTTP router
-for serving non-JSON content (like HTML).
+It includes a powerful JSON-based REST API framework, a simple-to-use HTTP router
+for serving non-JSON content (like HTML), and an interface for Websockets.
 
 It includes simple controls to allow for user authentication with contextual data
 being avaialble in every request.
 
 ## JSON API Example
+
+Return a JSON object with the UNIX Epoch when users browse to `/time`
 
 ```golang
 server = web.New("127.0.0.1:8080")
@@ -27,6 +29,29 @@ handle := func(request web.Request) (interface{}, *Error) {
 }
 options := web.HandleOptions{}
 server.API.GET("/time", handle, options)
+```
+
+## File-Serving Example
+
+Return the contents of the file `/foo/bar` when users browse to `/file`
+
+```golang
+server = web.New("127.0.0.1:8080")
+if err := server.Start(); err != nil {
+	panic(err)
+}
+
+handle := func(request web.Request, writer web.Writer) web.Response {
+	f, err := os.Open("/foo/bar")
+	if err != nil {
+		return CommonErrors.ServerError
+	}
+	return Response{
+		Reader: f,
+	}
+}
+options := HandleOptions{}
+server.HTTP.GET("/file", handle, options)
 ```
 
 ## Authentication Example
@@ -78,4 +103,39 @@ authenticatedOptions := HandleOptions{
 	},
 }
 server.API.GET("/user", userHandle, authenticatedOptions)
+```
+
+## Websocket Example
+
+A JSON-Based websocket server that replies to users questions
+
+```golang
+server = web.New("127.0.0.1:8080")
+if err := server.Start(); err != nil {
+	panic(err)
+}
+
+type questionType struct{
+	Name string
+}
+
+type answerType struct{
+	Reply string
+}
+
+handle := func(request web.Request, conn web.WSConn) {
+	question := questionType{}
+	if err := conn.ReadJSON(&question); err != nil {
+		return
+	}
+
+	reply := answerType{
+		Reply: "Hello, " + question.Name
+	}
+	if err := conn.WriteJSON(&reply); err != nil {
+		return
+	}
+}
+options := web.HandleOptions{}
+server.Socket("/greeting", handle, options)
 ```

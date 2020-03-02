@@ -95,7 +95,6 @@ func (a API) apiPostHandle(endpointHandle APIHandle, userData interface{}) httpr
 
 		response := JSONResponse{}
 		request := Request{
-			Writer:   w,
 			HTTP:     r,
 			Params:   ps,
 			UserData: userData,

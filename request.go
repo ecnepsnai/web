@@ -12,9 +12,23 @@ import (
 type Request struct {
 	HTTP     *http.Request
 	Params   httprouter.Params
-	Writer   http.ResponseWriter
 	UserData interface{}
 	log      *logtic.Source
+}
+
+// Writer HTTP response writer
+type Writer struct {
+	w http.ResponseWriter
+}
+
+// Write see http.ResponseWriter.Write for more
+func (w Writer) Write(d []byte) (int, error) {
+	return w.w.Write(d)
+}
+
+// WriteHeader see http.ResponseWriter.Write for more
+func (w Writer) WriteHeader(statusCode int) {
+	w.w.WriteHeader(statusCode)
 }
 
 // Decode unmarshal the JSON body to the provided interface

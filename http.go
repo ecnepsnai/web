@@ -99,14 +99,13 @@ func (h HTTP) httpPreHandle(endpointHandle HTTPHandle, options HandleOptions) ht
 func (h HTTP) httpPostHandle(endpointHandle HTTPHandle, userData interface{}) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		request := Request{
-			Writer:   w,
 			HTTP:     r,
 			Params:   ps,
 			UserData: userData,
 			log:      h.server.log,
 		}
 		start := time.Now()
-		response := endpointHandle(request)
+		response := endpointHandle(request, Writer{w})
 		elapsed := time.Since(start)
 
 		if len(response.ContentType) == 0 {

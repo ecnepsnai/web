@@ -34,14 +34,12 @@ func New(bindAddress string) *Server {
 	httpRouter.MethodNotAllowed = methodNotAllowedHandler{
 		server: &server,
 	}
-	api := API{
+	server.API = API{
 		server: &server,
 	}
-	http := HTTP{
+	server.HTTP = HTTP{
 		server: &server,
 	}
-	server.API = api
-	server.HTTP = http
 
 	return &server
 }

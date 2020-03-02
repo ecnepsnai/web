@@ -10,7 +10,7 @@ import (
 )
 
 func TestHTTPAddRoutes(t *testing.T) {
-	handle := func(request Request) Response {
+	handle := func(request Request, writer Writer) Response {
 		return Response{}
 	}
 	options := HandleOptions{}
@@ -26,7 +26,7 @@ func TestHTTPAddRoutes(t *testing.T) {
 }
 
 func TestHTTPAuthenticated(t *testing.T) {
-	handle := func(request Request) Response {
+	handle := func(request Request, writer Writer) Response {
 		return Response{}
 	}
 	authenticate := func(request *http.Request) interface{} {
@@ -54,7 +54,7 @@ func TestHTTPAuthenticated(t *testing.T) {
 }
 
 func TestHTTPUnauthenticated(t *testing.T) {
-	handle := func(request Request) Response {
+	handle := func(request Request, writer Writer) Response {
 		return Response{}
 	}
 	authenticate := func(request *http.Request) interface{} {
@@ -97,7 +97,7 @@ func TestHTTPNotFound(t *testing.T) {
 }
 
 func TestHTTPMethodNotAllowed(t *testing.T) {
-	handle := func(request Request) Response {
+	handle := func(request Request, writer Writer) Response {
 		return Response{}
 	}
 	authenticate := func(request *http.Request) interface{} {
@@ -125,7 +125,7 @@ func TestHTTPMethodNotAllowed(t *testing.T) {
 }
 
 func TestHTTPHandleError(t *testing.T) {
-	handle := func(request Request) Response {
+	handle := func(request Request, writer Writer) Response {
 		return Response{
 			Status: 403,
 		}
@@ -162,7 +162,7 @@ func TestHTTPResponse(t *testing.T) {
 		t.Errorf("Error making tempory file: %s", err.Error())
 	}
 
-	handle := func(request Request) Response {
+	handle := func(request Request, writer Writer) Response {
 		f, err := os.Open(path.Join(tmpDir, name))
 		if err != nil {
 			t.Errorf("Error opening temporary file: %s", err.Error())
@@ -192,7 +192,7 @@ func TestHTTPResponse(t *testing.T) {
 
 func TestHTTPContentType(t *testing.T) {
 	contentType := "application/amazing"
-	handle := func(request Request) Response {
+	handle := func(request Request, writer Writer) Response {
 		return Response{
 			ContentType: contentType,
 		}
@@ -218,7 +218,7 @@ func TestHTTPContentType(t *testing.T) {
 func TestHTTPHeaders(t *testing.T) {
 	headerKey := randomString(5)
 	headerValue := randomString(5)
-	handle := func(request Request) Response {
+	handle := func(request Request, writer Writer) Response {
 		return Response{
 			Headers: map[string]string{
 				headerKey: headerValue,
@@ -267,7 +267,7 @@ func TestServeFile(t *testing.T) {
 }
 
 func TestHTTPUnauthorizedMethod(t *testing.T) {
-	handle := func(request Request) Response {
+	handle := func(request Request, writer Writer) Response {
 		return Response{}
 	}
 	authenticate := func(request *http.Request) interface{} {
@@ -302,7 +302,7 @@ func TestHTTPUnauthorizedMethod(t *testing.T) {
 }
 
 func TestHTTPLargeBody(t *testing.T) {
-	handle := func(request Request) Response {
+	handle := func(request Request, writer Writer) Response {
 		return Response{}
 	}
 	options := HandleOptions{

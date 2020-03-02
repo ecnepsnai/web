@@ -9,7 +9,10 @@ import (
 type APIHandle func(request Request) (interface{}, *Error)
 
 // HTTPHandle describes a method signature for handling an HTTP request
-type HTTPHandle func(request Request) Response
+type HTTPHandle func(request Request, writer Writer) Response
+
+// SocketHandle describes a method signature for handling a HTTP websocket request
+type SocketHandle func(request Request, conn WSConn)
 
 // HandleOptions describes options for a route
 type HandleOptions struct {
