@@ -99,6 +99,7 @@ func (a API) apiPostHandle(endpointHandle APIHandle, userData interface{}) httpr
 			Params:   ps,
 			UserData: userData,
 			log:      a.server.log,
+			writer:   w,
 		}
 
 		start := time.Now()

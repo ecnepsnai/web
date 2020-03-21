@@ -103,6 +103,7 @@ func (h HTTP) httpPostHandle(endpointHandle HTTPHandle, userData interface{}) ht
 			Params:   ps,
 			UserData: userData,
 			log:      h.server.log,
+			writer:   w,
 		}
 		start := time.Now()
 		response := endpointHandle(request, Writer{w})

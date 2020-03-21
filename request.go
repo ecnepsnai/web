@@ -14,6 +14,12 @@ type Request struct {
 	Params   httprouter.Params
 	UserData interface{}
 	log      *logtic.Source
+	writer   http.ResponseWriter
+}
+
+// AddCookie add a cookie to the response
+func (r Request) AddCookie(cookie *http.Cookie) {
+	http.SetCookie(r.writer, cookie)
 }
 
 // Writer HTTP response writer
