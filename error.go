@@ -8,7 +8,7 @@ type Error struct {
 	Message string `json:"message,omitempty"`
 }
 
-// ValidationError conveience method to make a error object for validation errors
+// ValidationError convenience method to make a error object for validation errors
 func ValidationError(format string, v ...interface{}) *Error {
 	return &Error{
 		Code:    400,

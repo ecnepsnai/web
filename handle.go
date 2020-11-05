@@ -19,7 +19,7 @@ type HandleOptions struct {
 	// AuthenticateMethod method called to determine if a request is properly authenticated or not.
 	// Return nil to signal an unauthenticated request, which will be rejected
 	// Return anything else and that will be the "UserData" on the request object
-	// Optional, Omit this entirly if no authentication is needed for the request
+	// Optional, Omit this entirely if no authentication is needed for the request
 	AuthenticateMethod func(request *http.Request) interface{}
 	// UnauthorizedMethod method called when an unauthenticated request occurs (AuthenticateMethod returned nil)
 	// to customize the response seen by the user.

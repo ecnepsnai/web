@@ -82,7 +82,7 @@ func (h HTTP) httpPreHandle(endpointHandle HTTPHandle, options HandleOptions) ht
 					h.server.log.Warn("Rejected authenticated request")
 					w.Header().Set("Content-Type", "text/html")
 					w.WriteHeader(http.StatusUnauthorized)
-					w.Write([]byte("<html><body><strong>Unauthorized</strong>"))
+					w.Write([]byte("<html><head><title>Unauthorized</title></head><body><h1>Unauthorized</h1></body></html>"))
 					return
 				}
 
@@ -130,8 +130,7 @@ func (h HTTP) httpPostHandle(endpointHandle HTTPHandle, userData interface{}) ht
 			_, err := io.CopyBuffer(w, response.Reader, nil)
 			response.Reader.Close()
 			if err != nil {
-				h.server.log.Error("Error writing response: %s", err.Error())
-				w.WriteHeader(500)
+				h.server.log.Error("Error writing response for HTTP request %s %s: %s", r.Method, r.RequestURI, err.Error())
 				return
 			}
 		}
