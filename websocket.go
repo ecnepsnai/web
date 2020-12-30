@@ -1,6 +1,7 @@
 package web
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"github.com/gorilla/websocket"
@@ -24,14 +25,33 @@ var upgrader = websocket.Upgrader{
 
 func (s *Server) socketHandler(endpointHandle SocketHandle, options HandleOptions) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		var userData interface{}
+
+		if options.AuthenticateMethod != nil {
+			userData = options.AuthenticateMethod(r)
+			if isUserdataNil(userData) {
+				if options.UnauthorizedMethod == nil {
+					s.log.Warn("Rejected authenticated request")
+					w.Header().Set("Content-Type", "application/json")
+					w.WriteHeader(http.StatusUnauthorized)
+					json.NewEncoder(w).Encode(Error{401, "Unauthorized"})
+					return
+				}
+
+				options.UnauthorizedMethod(w, r)
+				return
+			}
+		}
+
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
 			s.log.Error("Error upgrading client for websocket connection: %s", err.Error())
 			return
 		}
 		endpointHandle(Request{
-			Params: ps,
-			log:    s.log,
+			Params:   ps,
+			UserData: userData,
+			log:      s.log,
 		}, WSConn{
 			c: conn,
 		})
