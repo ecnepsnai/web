@@ -134,3 +134,27 @@ func Example_websocket() {
 		panic(err)
 	}
 }
+
+func Example_ratelimit() {
+	server := web.New("127.0.0.1:8080")
+
+	// Restrict each connecting IP address to a maximum of 5 requests per second
+	server.MaxRequestsPerSecond = 5
+
+	// Handle called when a request is rejected due to rate limiting
+	server.RateLimitedHandler = func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(429)
+		w.Write([]byte("Too many requests"))
+	}
+
+	handle := func(request web.Request) (interface{}, *web.Error) {
+		return time.Now().Unix(), nil
+	}
+
+	options := web.HandleOptions{}
+	server.API.GET("/time", handle, options)
+
+	if err := server.Start(); err != nil {
+		panic(err)
+	}
+}

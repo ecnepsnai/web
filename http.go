@@ -9,7 +9,8 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
-// HTTP describes a HTTP server
+// HTTP describes a HTTP server. HTTP handles are expected to return a reader and specify the content
+// type themselves.
 type HTTP struct {
 	server *Server
 }
@@ -62,6 +63,10 @@ func (h HTTP) registerHTTPEndpoint(method string, path string, handle HTTPHandle
 
 func (h HTTP) httpPreHandle(endpointHandle HTTPHandle, options HandleOptions) httprouter.Handle {
 	return func(w http.ResponseWriter, request *http.Request, ps httprouter.Params) {
+		if h.server.isRateLimited(w, request) {
+			return
+		}
+
 		if options.MaxBodyLength > 0 {
 			// We don't need to worry about this not being a number. Go's own HTTP server
 			// won't respond to requests like these

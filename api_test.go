@@ -5,6 +5,9 @@ import (
 	"io/ioutil"
 	"net/http"
 	"testing"
+	"time"
+
+	"golang.org/x/time/rate"
 )
 
 func TestAPIAddRoutes(t *testing.T) {
@@ -280,4 +283,47 @@ func TestAPIInvalidJSON(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error reading response body: %s", err.Error())
 	}
+}
+
+func TestAPIRateLimit(t *testing.T) {
+	handle := func(request Request) (interface{}, *Error) {
+		return true, nil
+	}
+	options := HandleOptions{}
+
+	path := randomString(5)
+
+	server.limits = map[string]*rate.Limiter{}
+	server.MaxRequestsPerSecond = 2
+	server.API.GET("/"+path, handle, options)
+
+	testIdx := 1
+	doTest := func(expectedStatus int) {
+		resp, err := http.Get("http://localhost:9557/" + path)
+		if err != nil {
+			t.Fatalf("Network error: %s", err.Error())
+		}
+		if resp.StatusCode != expectedStatus {
+			t.Fatalf("Unexpected HTTP status code. Expected %d got %d in test %d", expectedStatus, resp.StatusCode, testIdx)
+		}
+		resp.Body.Close()
+		testIdx++
+	}
+
+	doTest(200)
+	time.Sleep(500 * time.Millisecond)
+	doTest(200)
+	time.Sleep(500 * time.Millisecond)
+	doTest(200)
+	time.Sleep(500 * time.Millisecond)
+	doTest(200)
+	doTest(200)
+	doTest(429)
+	time.Sleep(1 * time.Second)
+
+	doTest(200)
+	doTest(200)
+	doTest(429)
+
+	server.MaxRequestsPerSecond = 0
 }

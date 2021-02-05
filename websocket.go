@@ -27,6 +27,10 @@ func (s *Server) socketHandler(endpointHandle SocketHandle, options HandleOption
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		var userData interface{}
 
+		if s.isRateLimited(w, r) {
+			return
+		}
+
 		if options.AuthenticateMethod != nil {
 			userData = options.AuthenticateMethod(r)
 			if isUserdataNil(userData) {

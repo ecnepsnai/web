@@ -1,12 +1,13 @@
 package web
 
-// CommonErrors common errors
+// CommonErrors are common errors types suitable for API endpoints
 var CommonErrors = struct {
-	NotFound     *Error
-	BadRequest   *Error
-	Forbidden    *Error
-	ServerError  *Error
-	Unauthorized *Error
+	NotFound        *Error
+	BadRequest      *Error
+	Unauthorized    *Error
+	Forbidden       *Error
+	ServerError     *Error
+	TooManyRequests *Error
 }{
 	NotFound: &Error{
 		Code:    404,
@@ -27,5 +28,9 @@ var CommonErrors = struct {
 	ServerError: &Error{
 		Code:    500,
 		Message: "Server Error",
+	},
+	TooManyRequests: &Error{
+		Code:    429,
+		Message: "Too Many Requests",
 	},
 }

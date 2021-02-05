@@ -7,6 +7,9 @@ import (
 	"os"
 	"path"
 	"testing"
+	"time"
+
+	"golang.org/x/time/rate"
 )
 
 func TestHTTPAddRoutes(t *testing.T) {
@@ -325,4 +328,47 @@ func TestHTTPLargeBody(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error reading response body: %s", err.Error())
 	}
+}
+
+func TestHTTPRateLimit(t *testing.T) {
+	handle := func(request Request, writer Writer) Response {
+		return Response{}
+	}
+	options := HandleOptions{}
+
+	path := randomString(5)
+
+	server.limits = map[string]*rate.Limiter{}
+	server.MaxRequestsPerSecond = 2
+	server.HTTP.GET("/"+path, handle, options)
+
+	testIdx := 1
+	doTest := func(expectedStatus int) {
+		resp, err := http.Get("http://localhost:9557/" + path)
+		if err != nil {
+			t.Fatalf("Network error: %s", err.Error())
+		}
+		if resp.StatusCode != expectedStatus {
+			t.Fatalf("Unexpected HTTP status code. Expected %d got %d in test %d", expectedStatus, resp.StatusCode, testIdx)
+		}
+		resp.Body.Close()
+		testIdx++
+	}
+
+	doTest(200)
+	time.Sleep(500 * time.Millisecond)
+	doTest(200)
+	time.Sleep(500 * time.Millisecond)
+	doTest(200)
+	time.Sleep(500 * time.Millisecond)
+	doTest(200)
+	doTest(200)
+	doTest(429)
+	time.Sleep(1 * time.Second)
+
+	doTest(200)
+	doTest(200)
+	doTest(429)
+
+	server.MaxRequestsPerSecond = 0
 }

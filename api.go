@@ -9,7 +9,8 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
-// API describes a JSON API
+// API describes a JSON API server. API handles return data or an error, and all responses are wrapped in a common
+// response object.
 type API struct {
 	server *Server
 }
@@ -50,19 +51,23 @@ func (a API) DELETE(path string, handle APIHandle, options HandleOptions) {
 }
 
 func (a API) registerAPIEndpoint(method string, path string, handle APIHandle, options HandleOptions) {
-	a.server.log.Debug("Register API %s %s", method, path)
+	log.Debug("Register API %s %s", method, path)
 	a.server.router.Handle(method, path, a.apiPreHandle(handle, options))
 }
 
 func (a API) apiPreHandle(endpointHandle APIHandle, options HandleOptions) httprouter.Handle {
 	return func(w http.ResponseWriter, request *http.Request, ps httprouter.Params) {
+		if a.server.isRateLimited(w, request) {
+			return
+		}
+
 		if options.MaxBodyLength > 0 {
 			// We don't need to worry about this not being a number. Go's own HTTP server
 			// won't respond to requests like these
 			length, _ := strconv.ParseUint(request.Header.Get("Content-Length"), 10, 64)
 
 			if length > options.MaxBodyLength {
-				a.server.log.Error("Rejecting HTTP request with body length %d", length)
+				log.Error("Rejecting HTTP request with body length %d", length)
 				w.WriteHeader(413)
 				return
 			}
