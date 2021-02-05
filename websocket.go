@@ -14,7 +14,7 @@ func (s *Server) Socket(path string, handle SocketHandle, options HandleOptions)
 }
 
 func (s *Server) registerSocketEndpoint(method string, path string, handle SocketHandle, options HandleOptions) {
-	s.log.Debug("Register HTTP %s %s", method, path)
+	log.Debug("Register HTTP %s %s", method, path)
 	s.router.Handle(method, path, s.socketHandler(handle, options))
 }
 
@@ -31,7 +31,7 @@ func (s *Server) socketHandler(endpointHandle SocketHandle, options HandleOption
 			userData = options.AuthenticateMethod(r)
 			if isUserdataNil(userData) {
 				if options.UnauthorizedMethod == nil {
-					s.log.Warn("Rejected authenticated request")
+					log.Warn("Rejected authenticated request")
 					w.Header().Set("Content-Type", "application/json")
 					w.WriteHeader(http.StatusUnauthorized)
 					json.NewEncoder(w).Encode(Error{401, "Unauthorized"})
@@ -45,16 +45,15 @@ func (s *Server) socketHandler(endpointHandle SocketHandle, options HandleOption
 
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
-			s.log.Error("Error upgrading client for websocket connection: %s", err.Error())
+			log.Error("Error upgrading client for websocket connection: %s", err.Error())
 			return
 		}
 		endpointHandle(Request{
 			Params:   ps,
 			UserData: userData,
-			log:      s.log,
 		}, WSConn{
 			c: conn,
 		})
-		s.log.Debug("HTTP WS Request: ws://%s", r.RequestURI)
+		log.Debug("HTTP WS Request: ws://%s", r.RequestURI)
 	}
 }

@@ -16,7 +16,7 @@ type HTTP struct {
 
 // Static serve static files matching the request path to the given directory
 func (h HTTP) Static(path string, directory string) {
-	h.server.log.Debug("Serving files from '%s' matching path '%s'", directory, path)
+	log.Debug("Serving files from '%s' matching path '%s'", directory, path)
 	h.server.router.ServeFiles(path, http.Dir(directory))
 }
 
@@ -56,7 +56,7 @@ func (h HTTP) DELETE(path string, handle HTTPHandle, options HandleOptions) {
 }
 
 func (h HTTP) registerHTTPEndpoint(method string, path string, handle HTTPHandle, options HandleOptions) {
-	h.server.log.Debug("Register HTTP %s %s", method, path)
+	log.Debug("Register HTTP %s %s", method, path)
 	h.server.router.Handle(method, path, h.httpPreHandle(handle, options))
 }
 
@@ -66,10 +66,10 @@ func (h HTTP) httpPreHandle(endpointHandle HTTPHandle, options HandleOptions) ht
 			// We don't need to worry about this not being a number. Go's own HTTP server
 			// won't respond to requests like these
 			length, _ := strconv.ParseUint(request.Header.Get("Content-Length"), 10, 64)
-			h.server.log.Debug("Body length: %d", length)
+			log.Debug("Body length: %d", length)
 
 			if length > options.MaxBodyLength {
-				h.server.log.Error("Rejecting HTTP request with body length %d", length)
+				log.Error("Rejecting HTTP request with body length %d", length)
 				w.WriteHeader(413)
 				return
 			}
@@ -79,7 +79,7 @@ func (h HTTP) httpPreHandle(endpointHandle HTTPHandle, options HandleOptions) ht
 			userData := options.AuthenticateMethod(request)
 			if isUserdataNil(userData) {
 				if options.UnauthorizedMethod == nil {
-					h.server.log.Warn("Rejected authenticated request")
+					log.Warn("Rejected authenticated request")
 					w.Header().Set("Content-Type", "text/html")
 					w.WriteHeader(http.StatusUnauthorized)
 					w.Write([]byte("<html><head><title>Unauthorized</title></head><body><h1>Unauthorized</h1></body></html>"))
@@ -102,7 +102,6 @@ func (h HTTP) httpPostHandle(endpointHandle HTTPHandle, userData interface{}) ht
 			HTTP:     r,
 			Params:   ps,
 			UserData: userData,
-			log:      h.server.log,
 			writer:   w,
 		}
 		start := time.Now()
@@ -123,14 +122,14 @@ func (h HTTP) httpPostHandle(endpointHandle HTTPHandle, userData interface{}) ht
 		if response.Status != 0 {
 			code = response.Status
 		}
-		h.server.log.Debug("HTTP Request: %s %s -> %d (%s)", r.Method, r.RequestURI, code, elapsed)
+		log.Debug("HTTP Request: %s %s -> %d (%s)", r.Method, r.RequestURI, code, elapsed)
 		w.WriteHeader(code)
 
 		if response.Reader != nil {
 			_, err := io.CopyBuffer(w, response.Reader, nil)
 			response.Reader.Close()
 			if err != nil {
-				h.server.log.Error("Error writing response for HTTP request %s %s: %s", r.Method, r.RequestURI, err.Error())
+				log.Error("Error writing response for HTTP request %s %s: %s", r.Method, r.RequestURI, err.Error())
 				return
 			}
 		}

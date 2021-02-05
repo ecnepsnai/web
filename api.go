@@ -72,7 +72,7 @@ func (a API) apiPreHandle(endpointHandle APIHandle, options HandleOptions) httpr
 			userData := options.AuthenticateMethod(request)
 			if isUserdataNil(userData) {
 				if options.UnauthorizedMethod == nil {
-					a.server.log.Warn("Rejected authenticated request")
+					log.Warn("Rejected authenticated request")
 					w.Header().Set("Content-Type", "application/json")
 					w.WriteHeader(http.StatusUnauthorized)
 					json.NewEncoder(w).Encode(Error{401, "Unauthorized"})
@@ -98,7 +98,6 @@ func (a API) apiPostHandle(endpointHandle APIHandle, userData interface{}) httpr
 			HTTP:     r,
 			Params:   ps,
 			UserData: userData,
-			log:      a.server.log,
 			writer:   w,
 		}
 
@@ -113,9 +112,9 @@ func (a API) apiPostHandle(endpointHandle APIHandle, userData interface{}) httpr
 			response.Code = 200
 			response.Data = data
 		}
-		a.server.log.Debug("API Request: %s %s -> %d (%s)", r.Method, r.RequestURI, response.Code, elapsed)
+		log.Debug("API Request: %s %s -> %d (%s)", r.Method, r.RequestURI, response.Code, elapsed)
 		if err := json.NewEncoder(w).Encode(response); err != nil {
-			a.server.log.Error("Error writing response for API request %s %s: %s", r.Method, r.RequestURI, err.Error())
+			log.Error("Error writing response for API request %s %s: %s", r.Method, r.RequestURI, err.Error())
 		}
 	}
 }

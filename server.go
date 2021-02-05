@@ -3,7 +3,6 @@ package web
 import (
 	"net/http"
 
-	"github.com/ecnepsnai/logtic"
 	"github.com/julienschmidt/httprouter"
 )
 
@@ -15,7 +14,6 @@ type Server struct {
 	shuttingDown            bool
 	API                     API
 	HTTP                    HTTP
-	log                     *logtic.Source
 	NotFoundHandler         func(w http.ResponseWriter, r *http.Request)
 	MethodNotAllowedHandler func(w http.ResponseWriter, r *http.Request)
 }
@@ -26,7 +24,6 @@ func New(bindAddress string) *Server {
 	server := Server{
 		BindAddress: bindAddress,
 		router:      httpRouter,
-		log:         logtic.Connect("HTTP"),
 	}
 	httpRouter.NotFound = notFoundHandler{
 		server: &server,
@@ -36,6 +33,7 @@ func New(bindAddress string) *Server {
 	}
 	server.API = API{
 		server: &server,
+		limits: map[string]*rate.Limiter{},
 	}
 	server.HTTP = HTTP{
 		server: &server,
@@ -47,10 +45,10 @@ func New(bindAddress string) *Server {
 // Start start the server. Blocks.
 func (s *Server) Start() error {
 	s.socket = http.Server{Addr: s.BindAddress, Handler: s.router}
-	s.log.Info("HTTP Server listening on %s", s.BindAddress)
+	log.Info("HTTP Server listening on %s", s.BindAddress)
 	if err := s.socket.ListenAndServe(); err != nil {
 		if s.shuttingDown {
-			s.log.Info("HTTP server stopped")
+			log.Info("HTTP server stopped")
 			return nil
 		}
 		return err
@@ -60,7 +58,7 @@ func (s *Server) Start() error {
 
 // Stop stop the server.
 func (s *Server) Stop() {
-	s.log.Warn("Stopping HTTP server")
+	log.Warn("Stopping HTTP server")
 	s.shuttingDown = true
 	s.socket.Close()
 }
@@ -70,7 +68,7 @@ type notFoundHandler struct {
 }
 
 func (n notFoundHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	n.server.log.Debug("HTTP %s %s -> %d", r.Method, r.RequestURI, 404)
+	log.Debug("HTTP %s %s -> %d", r.Method, r.RequestURI, 404)
 	if n.server.NotFoundHandler != nil {
 		n.server.NotFoundHandler(w, r)
 		return
@@ -84,7 +82,7 @@ type methodNotAllowedHandler struct {
 }
 
 func (n methodNotAllowedHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	n.server.log.Debug("HTTP %s %s -> %d", r.Method, r.RequestURI, 405)
+	log.Debug("HTTP %s %s -> %d", r.Method, r.RequestURI, 405)
 	if n.server.MethodNotAllowedHandler != nil {
 		n.server.MethodNotAllowedHandler(w, r)
 		return

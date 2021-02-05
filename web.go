@@ -7,3 +7,7 @@ and as a WebSocket server.
 It includes simple controls to allow for user authentication with contextual data being available in every request.
 */
 package web
+
+import "github.com/ecnepsnai/logtic"
+
+var log = logtic.Connect("HTTP")
