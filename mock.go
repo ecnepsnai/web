@@ -9,7 +9,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
-// MockRequest generate a mock request for testing your handlers
+// MockRequest generate a mock request for testing your handlers. Body will be encoded as JSON and may panic if invalid.
 func MockRequest(userData interface{}, params map[string]string, body interface{}) Request {
 	var p []httprouter.Param
 

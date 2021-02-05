@@ -1,7 +1,8 @@
-package web
+package web_test
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -9,14 +10,17 @@ import (
 	"testing"
 	"time"
 
-	"golang.org/x/time/rate"
+	"github.com/ecnepsnai/web"
 )
 
 func TestHTTPAddRoutes(t *testing.T) {
-	handle := func(request Request, writer Writer) Response {
-		return Response{}
+	t.Parallel()
+	server := newServer()
+
+	handle := func(request web.Request, writer web.Writer) web.Response {
+		return web.Response{}
 	}
-	options := HandleOptions{}
+	options := web.HandleOptions{}
 
 	path := randomString(5)
 	server.HTTP.GET("/"+path, handle, options)
@@ -29,13 +33,16 @@ func TestHTTPAddRoutes(t *testing.T) {
 }
 
 func TestHTTPAuthenticated(t *testing.T) {
-	handle := func(request Request, writer Writer) Response {
-		return Response{}
+	t.Parallel()
+	server := newServer()
+
+	handle := func(request web.Request, writer web.Writer) web.Response {
+		return web.Response{}
 	}
 	authenticate := func(request *http.Request) interface{} {
 		return 1
 	}
-	options := HandleOptions{
+	options := web.HandleOptions{
 		AuthenticateMethod: authenticate,
 	}
 
@@ -43,27 +50,33 @@ func TestHTTPAuthenticated(t *testing.T) {
 
 	server.HTTP.GET("/"+path, handle, options)
 
-	resp, err := http.Get("http://localhost:9557/" + path)
+	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/%s", server.ListenPort, path))
 	if err != nil {
-		t.Errorf("Network error: %s", err.Error())
+		t.Fatalf("Network error: %s", err.Error())
+	}
+	if resp == nil {
+		t.Fatalf("Nil response returned")
 	}
 	if resp.StatusCode != 200 {
-		t.Errorf("Unexpected HTTP status code. Expected %d got %d", 200, resp.StatusCode)
+		t.Fatalf("Unexpected HTTP status code. Expected %d got %d", 200, resp.StatusCode)
 	}
 	_, err = ioutil.ReadAll(resp.Body)
 	if err != nil {
-		t.Errorf("Error reading response body: %s", err.Error())
+		t.Fatalf("Error reading response body: %s", err.Error())
 	}
 }
 
 func TestHTTPUnauthenticated(t *testing.T) {
-	handle := func(request Request, writer Writer) Response {
-		return Response{}
+	t.Parallel()
+	server := newServer()
+
+	handle := func(request web.Request, writer web.Writer) web.Response {
+		return web.Response{}
 	}
 	authenticate := func(request *http.Request) interface{} {
 		return nil
 	}
-	options := HandleOptions{
+	options := web.HandleOptions{
 		AuthenticateMethod: authenticate,
 	}
 
@@ -71,42 +84,54 @@ func TestHTTPUnauthenticated(t *testing.T) {
 
 	server.HTTP.GET("/"+path, handle, options)
 
-	resp, err := http.Get("http://localhost:9557/" + path)
+	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/%s", server.ListenPort, path))
 	if err != nil {
-		t.Errorf("Network error: %s", err.Error())
+		t.Fatalf("Network error: %s", err.Error())
+	}
+	if resp == nil {
+		t.Fatalf("Nil response returned")
 	}
 	if resp.StatusCode != 401 {
-		t.Errorf("Unexpected HTTP status code. Expected %d got %d", 401, resp.StatusCode)
+		t.Fatalf("Unexpected HTTP status code. Expected %d got %d", 401, resp.StatusCode)
 	}
 	_, err = ioutil.ReadAll(resp.Body)
 	if err != nil {
-		t.Errorf("Error reading response body: %s", err.Error())
+		t.Fatalf("Error reading response body: %s", err.Error())
 	}
 }
 
 func TestHTTPNotFound(t *testing.T) {
+	t.Parallel()
+	server := newServer()
+
 	path := randomString(5)
-	resp, err := http.Get("http://localhost:9557/" + path)
+	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/%s", server.ListenPort, path))
 	if err != nil {
-		t.Errorf("Network error: %s", err.Error())
+		t.Fatalf("Network error: %s", err.Error())
+	}
+	if resp == nil {
+		t.Fatalf("Nil response returned")
 	}
 	if resp.StatusCode != 404 {
-		t.Errorf("Unexpected HTTP status code. Expected %d got %d", 404, resp.StatusCode)
+		t.Fatalf("Unexpected HTTP status code. Expected %d got %d", 404, resp.StatusCode)
 	}
 	_, err = ioutil.ReadAll(resp.Body)
 	if err != nil {
-		t.Errorf("Error reading response body: %s", err.Error())
+		t.Fatalf("Error reading response body: %s", err.Error())
 	}
 }
 
 func TestHTTPMethodNotAllowed(t *testing.T) {
-	handle := func(request Request, writer Writer) Response {
-		return Response{}
+	t.Parallel()
+	server := newServer()
+
+	handle := func(request web.Request, writer web.Writer) web.Response {
+		return web.Response{}
 	}
 	authenticate := func(request *http.Request) interface{} {
 		return nil
 	}
-	options := HandleOptions{
+	options := web.HandleOptions{
 		AuthenticateMethod: authenticate,
 	}
 
@@ -114,29 +139,35 @@ func TestHTTPMethodNotAllowed(t *testing.T) {
 
 	server.HTTP.POST("/"+path, handle, options)
 
-	resp, err := http.Get("http://localhost:9557/" + path)
+	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/%s", server.ListenPort, path))
 	if err != nil {
-		t.Errorf("Network error: %s", err.Error())
+		t.Fatalf("Network error: %s", err.Error())
+	}
+	if resp == nil {
+		t.Fatalf("Nil response returned")
 	}
 	if resp.StatusCode != 405 {
-		t.Errorf("Unexpected HTTP status code. Expected %d got %d", 405, resp.StatusCode)
+		t.Fatalf("Unexpected HTTP status code. Expected %d got %d", 405, resp.StatusCode)
 	}
 	_, err = ioutil.ReadAll(resp.Body)
 	if err != nil {
-		t.Errorf("Error reading response body: %s", err.Error())
+		t.Fatalf("Error reading response body: %s", err.Error())
 	}
 }
 
 func TestHTTPHandleError(t *testing.T) {
-	handle := func(request Request, writer Writer) Response {
-		return Response{
+	t.Parallel()
+	server := newServer()
+
+	handle := func(request web.Request, writer web.Writer) web.Response {
+		return web.Response{
 			Status: 403,
 		}
 	}
 	authenticate := func(request *http.Request) interface{} {
 		return 1
 	}
-	options := HandleOptions{
+	options := web.HandleOptions{
 		AuthenticateMethod: authenticate,
 	}
 
@@ -144,134 +175,164 @@ func TestHTTPHandleError(t *testing.T) {
 
 	server.HTTP.GET("/"+path, handle, options)
 
-	resp, err := http.Get("http://localhost:9557/" + path)
+	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/%s", server.ListenPort, path))
 	if err != nil {
-		t.Errorf("Network error: %s", err.Error())
+		t.Fatalf("Network error: %s", err.Error())
+	}
+	if resp == nil {
+		t.Fatalf("Nil response returned")
 	}
 	if resp.StatusCode != 403 {
-		t.Errorf("Unexpected HTTP status code. Expected %d got %d", 403, resp.StatusCode)
+		t.Fatalf("Unexpected HTTP status code. Expected %d got %d", 403, resp.StatusCode)
 	}
 	_, err = ioutil.ReadAll(resp.Body)
 	if err != nil {
-		t.Errorf("Error reading response body: %s", err.Error())
+		t.Fatalf("Error reading response body: %s", err.Error())
 	}
 }
 
 func TestHTTPResponse(t *testing.T) {
+	t.Parallel()
+	server := newServer()
+
 	data := randomString(5)
 	name := randomString(5) + ".html"
 
 	if err := ioutil.WriteFile(path.Join(tmpDir, name), []byte(data), 0644); err != nil {
-		t.Errorf("Error making tempory file: %s", err.Error())
+		t.Fatalf("Error making tempory file: %s", err.Error())
 	}
 
-	handle := func(request Request, writer Writer) Response {
+	handle := func(request web.Request, writer web.Writer) web.Response {
 		f, err := os.Open(path.Join(tmpDir, name))
 		if err != nil {
-			t.Errorf("Error opening temporary file: %s", err.Error())
+			t.Fatalf("Error opening temporary file: %s", err.Error())
 		}
-		return Response{
+		return web.Response{
 			Reader: f,
 		}
 	}
-	options := HandleOptions{}
+	options := web.HandleOptions{}
 
 	path := randomString(5)
 
 	server.HTTP.GET("/"+path, handle, options)
 
-	resp, err := http.Get("http://localhost:9557/" + path)
+	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/%s", server.ListenPort, path))
 	if err != nil {
-		t.Errorf("Network error: %s", err.Error())
+		t.Fatalf("Network error: %s", err.Error())
+	}
+	if resp == nil {
+		t.Fatalf("Nil response returned")
 	}
 	if resp.StatusCode != 200 {
-		t.Errorf("Unexpected HTTP status code. Expected %d got %d", 200, resp.StatusCode)
+		t.Fatalf("Unexpected HTTP status code. Expected %d got %d", 200, resp.StatusCode)
 	}
 	_, err = ioutil.ReadAll(resp.Body)
 	if err != nil {
-		t.Errorf("Error reading response body: %s", err.Error())
+		t.Fatalf("Error reading response body: %s", err.Error())
 	}
 }
 
 func TestHTTPContentType(t *testing.T) {
+	t.Parallel()
+	server := newServer()
+
 	contentType := "application/amazing"
-	handle := func(request Request, writer Writer) Response {
-		return Response{
+	handle := func(request web.Request, writer web.Writer) web.Response {
+		return web.Response{
 			ContentType: contentType,
 		}
 	}
-	options := HandleOptions{}
+	options := web.HandleOptions{}
 
 	path := randomString(5)
 
 	server.HTTP.GET("/"+path, handle, options)
 
-	resp, err := http.Get("http://localhost:9557/" + path)
+	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/%s", server.ListenPort, path))
 	if err != nil {
-		t.Errorf("Network error: %s", err.Error())
+		t.Fatalf("Network error: %s", err.Error())
+	}
+	if resp == nil {
+		t.Fatalf("Nil response returned")
 	}
 	if resp.StatusCode != 200 {
-		t.Errorf("Unexpected HTTP status code. Expected %d got %d", 200, resp.StatusCode)
+		t.Fatalf("Unexpected HTTP status code. Expected %d got %d", 200, resp.StatusCode)
 	}
 	if resp.Header.Get("Content-Type") != contentType {
-		t.Errorf("Unexpected content type. Expected '%s' got '%s'", contentType, resp.Header.Get("Content-Type"))
+		t.Fatalf("Unexpected content type. Expected '%s' got '%s'", contentType, resp.Header.Get("Content-Type"))
 	}
 }
 
 func TestHTTPHeaders(t *testing.T) {
+	t.Parallel()
+	server := newServer()
+
 	headerKey := randomString(5)
 	headerValue := randomString(5)
-	handle := func(request Request, writer Writer) Response {
-		return Response{
+	handle := func(request web.Request, writer web.Writer) web.Response {
+		return web.Response{
 			Headers: map[string]string{
 				headerKey: headerValue,
 			},
 		}
 	}
-	options := HandleOptions{}
+	options := web.HandleOptions{}
 
 	path := randomString(5)
 
 	server.HTTP.GET("/"+path, handle, options)
 
-	resp, err := http.Get("http://localhost:9557/" + path)
+	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/%s", server.ListenPort, path))
 	if err != nil {
-		t.Errorf("Network error: %s", err.Error())
+		t.Fatalf("Network error: %s", err.Error())
+	}
+	if resp == nil {
+		t.Fatalf("Nil response returned")
 	}
 	if resp.StatusCode != 200 {
-		t.Errorf("Unexpected HTTP status code. Expected %d got %d", 200, resp.StatusCode)
+		t.Fatalf("Unexpected HTTP status code. Expected %d got %d", 200, resp.StatusCode)
 	}
 	if resp.Header.Get(headerKey) != headerValue {
-		t.Errorf("Unexpected content type. Expected '%s: %s' got '%s: %s'", headerKey, headerValue, headerKey, resp.Header.Get(headerKey))
+		t.Fatalf("Unexpected content type. Expected '%s: %s' got '%s: %s'", headerKey, headerValue, headerKey, resp.Header.Get(headerKey))
 	}
 }
 
 func TestServeFile(t *testing.T) {
+	t.Parallel()
+	server := newServer()
+
 	data := randomString(5)
 	name := randomString(5) + ".html"
 
 	if err := ioutil.WriteFile(path.Join(tmpDir, name), []byte(data), 0644); err != nil {
-		t.Errorf("Error making tempory file: %s", err.Error())
+		t.Fatalf("Error making tempory file: %s", err.Error())
 	}
 
 	server.HTTP.Static("/static/*filepath", tmpDir)
 
-	resp, err := http.Get("http://localhost:9557/static/" + name)
+	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/static/%s", server.ListenPort, name))
 	if err != nil {
-		t.Errorf("Network error: %s", err.Error())
+		t.Fatalf("Network error: %s", err.Error())
+	}
+	if resp == nil {
+		t.Fatalf("Nil response returned")
 	}
 	if resp.StatusCode != 200 {
-		t.Errorf("Unexpected HTTP status code. Expected %d got %d", 200, resp.StatusCode)
+		t.Fatalf("Unexpected HTTP status code. Expected %d got %d", 200, resp.StatusCode)
 	}
 	_, err = ioutil.ReadAll(resp.Body)
 	if err != nil {
-		t.Errorf("Error reading response body: %s", err.Error())
+		t.Fatalf("Error reading response body: %s", err.Error())
 	}
 }
 
 func TestHTTPUnauthorizedMethod(t *testing.T) {
-	handle := func(request Request, writer Writer) Response {
-		return Response{}
+	t.Parallel()
+	server := newServer()
+
+	handle := func(request web.Request, writer web.Writer) web.Response {
+		return web.Response{}
 	}
 	authenticate := func(request *http.Request) interface{} {
 		return nil
@@ -283,7 +344,7 @@ func TestHTTPUnauthorizedMethod(t *testing.T) {
 		w.Header().Set("Location", location)
 		w.WriteHeader(410)
 	}
-	options := HandleOptions{
+	options := web.HandleOptions{
 		AuthenticateMethod: authenticate,
 		UnauthorizedMethod: unauthorized,
 	}
@@ -292,23 +353,29 @@ func TestHTTPUnauthorizedMethod(t *testing.T) {
 
 	server.HTTP.GET("/"+path, handle, options)
 
-	resp, err := http.Get("http://localhost:9557/" + path)
+	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/%s", server.ListenPort, path))
 	if err != nil {
-		t.Errorf("Network error: %s", err.Error())
+		t.Fatalf("Network error: %s", err.Error())
+	}
+	if resp == nil {
+		t.Fatalf("Nil response returned")
 	}
 	if resp.StatusCode != 410 {
-		t.Errorf("Unexpected HTTP status code. Expected %d got %d", 410, resp.StatusCode)
+		t.Fatalf("Unexpected HTTP status code. Expected %d got %d", 410, resp.StatusCode)
 	}
 	if resp.Header.Get("Location") != location {
-		t.Errorf("Missing expected HTTP header. Expected '%s' got '%s'", location, resp.Header.Get("Location"))
+		t.Fatalf("Missing expected HTTP header. Expected '%s' got '%s'", location, resp.Header.Get("Location"))
 	}
 }
 
 func TestHTTPLargeBody(t *testing.T) {
-	handle := func(request Request, writer Writer) Response {
-		return Response{}
+	t.Parallel()
+	server := newServer()
+
+	handle := func(request web.Request, writer web.Writer) web.Response {
+		return web.Response{}
 	}
-	options := HandleOptions{
+	options := web.HandleOptions{
 		MaxBodyLength: 10,
 	}
 
@@ -317,34 +384,39 @@ func TestHTTPLargeBody(t *testing.T) {
 
 	server.HTTP.POST("/"+path, handle, options)
 
-	resp, err := http.Post("http://localhost:9557/"+path, "text-plain", body)
+	resp, err := http.Post(fmt.Sprintf("http://localhost:%d/%s", server.ListenPort, path), "text-plain", body)
 	if err != nil {
-		t.Errorf("Network error: %s", err.Error())
+		t.Fatalf("Network error: %s", err.Error())
+	}
+	if resp == nil {
+		t.Fatalf("Nil response returned")
 	}
 	if resp.StatusCode != 413 {
-		t.Errorf("Unexpected HTTP status code. Expected %d got %d", 413, resp.StatusCode)
+		t.Fatalf("Unexpected HTTP status code. Expected %d got %d", 413, resp.StatusCode)
 	}
 	_, err = ioutil.ReadAll(resp.Body)
 	if err != nil {
-		t.Errorf("Error reading response body: %s", err.Error())
+		t.Fatalf("Error reading response body: %s", err.Error())
 	}
 }
 
 func TestHTTPRateLimit(t *testing.T) {
-	handle := func(request Request, writer Writer) Response {
-		return Response{}
+	t.Parallel()
+	server := newServer()
+
+	handle := func(request web.Request, writer web.Writer) web.Response {
+		return web.Response{}
 	}
-	options := HandleOptions{}
+	options := web.HandleOptions{}
 
 	path := randomString(5)
 
-	server.limits = map[string]*rate.Limiter{}
 	server.MaxRequestsPerSecond = 2
 	server.HTTP.GET("/"+path, handle, options)
 
 	testIdx := 1
 	doTest := func(expectedStatus int) {
-		resp, err := http.Get("http://localhost:9557/" + path)
+		resp, err := http.Get(fmt.Sprintf("http://localhost:%d/%s", server.ListenPort, path))
 		if err != nil {
 			t.Fatalf("Network error: %s", err.Error())
 		}
@@ -369,6 +441,4 @@ func TestHTTPRateLimit(t *testing.T) {
 	doTest(200)
 	doTest(200)
 	doTest(429)
-
-	server.MaxRequestsPerSecond = 0
 }

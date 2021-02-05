@@ -1,6 +1,7 @@
 package web
 
 import (
+	"net"
 	"net/http"
 	"sync"
 
@@ -13,6 +14,8 @@ type Server struct {
 	// The socket address that the server will listen to. Must be in the format of "address:port", such as
 	// "localhost:8080" or "0.0.0.0:8080". Changing this after the server has started has no effect.
 	BindAddress string
+	// The port that this server is listening on.
+	ListenPort uint16
 	// The API instance that is used to register JSON endpoints.
 	API API
 	// The HTTP instance that is used to register plain HTTP endpoints.
@@ -31,7 +34,7 @@ type Server struct {
 	// Setting this to 0 disables rate limiting.
 	MaxRequestsPerSecond int
 	router               *httprouter.Router
-	socket               http.Server
+	listener             net.Listener
 	shuttingDown         bool
 	limits               map[string]*rate.Limiter
 	limitLock            *sync.Mutex
@@ -66,9 +69,15 @@ func New(bindAddress string) *Server {
 // Start will start the web server and listen on the socket address. This method blocks.
 // If a server is stopped using the Stop() method, this returns no error.
 func (s *Server) Start() error {
-	s.socket = http.Server{Addr: s.BindAddress, Handler: s.router}
-	log.Info("HTTP Server listening on %s", s.BindAddress)
-	if err := s.socket.ListenAndServe(); err != nil {
+	listener, err := net.Listen("tcp", s.BindAddress)
+	if err != nil {
+		log.Error("Error listening %s: %s", s.BindAddress, err.Error())
+		return err
+	}
+	s.listener = listener
+	s.ListenPort = uint16(listener.Addr().(*net.TCPAddr).Port)
+	log.Info("HTTP server listen: bind_address='%s' listen_port=%d", s.BindAddress, s.ListenPort)
+	if err := http.Serve(listener, s.router); err != nil {
 		if s.shuttingDown {
 			log.Info("HTTP server stopped")
 			return nil
@@ -82,7 +91,8 @@ func (s *Server) Start() error {
 func (s *Server) Stop() {
 	log.Warn("Stopping HTTP server")
 	s.shuttingDown = true
-	s.socket.Close()
+	s.ListenPort = 0
+	s.listener.Close()
 }
 
 type notFoundHandler struct {
@@ -133,8 +143,8 @@ func (s *Server) isRateLimited(w http.ResponseWriter, r *http.Request) bool {
 	if !limiter.Allow() {
 		log.Warn("Rate-limiting request: url='%s' remote_addr='%s'", r.URL.String(), r.RemoteAddr)
 		log.Debug("HTTP %s %s -> %d", r.Method, r.RequestURI, 429)
-		if s.MethodNotAllowedHandler != nil {
-			s.MethodNotAllowedHandler(w, r)
+		if s.RateLimitedHandler != nil {
+			s.RateLimitedHandler(w, r)
 		} else {
 			w.WriteHeader(429)
 			w.Write([]byte("Too many requests"))
@@ -143,21 +153,4 @@ func (s *Server) isRateLimited(w http.ResponseWriter, r *http.Request) bool {
 	}
 
 	return false
-}
-
-func getIPFromRemoteAddr(remoteAddr string) string {
-	length := len(remoteAddr)
-	if remoteAddr[length-6] == ':' {
-		return remoteAddr[0 : length-6]
-	} else if remoteAddr[length-5] == ':' {
-		return remoteAddr[0 : length-5]
-	} else if remoteAddr[length-4] == ':' {
-		return remoteAddr[0 : length-4]
-	} else if remoteAddr[length-3] == ':' {
-		return remoteAddr[0 : length-3]
-	} else if remoteAddr[length-2] == ':' {
-		return remoteAddr[0 : length-2]
-	}
-
-	return remoteAddr
 }

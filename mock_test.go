@@ -1,7 +1,9 @@
-package web
+package web_test
 
 import (
 	"testing"
+
+	"github.com/ecnepsnai/web"
 )
 
 func TestMock(t *testing.T) {
@@ -11,7 +13,7 @@ func TestMock(t *testing.T) {
 
 	userData := 1
 
-	handle := func(request Request) (interface{}, *Error) {
+	handle := func(request web.Request) (interface{}, *web.Error) {
 		example := exampleType{}
 
 		if err := request.Decode(&example); err != nil {
@@ -32,6 +34,6 @@ func TestMock(t *testing.T) {
 		return nil, nil
 	}
 
-	request := MockRequest(userData, map[string]string{"foo": "bar"}, exampleType{true})
+	request := web.MockRequest(userData, map[string]string{"foo": "bar"}, exampleType{true})
 	handle(request)
 }

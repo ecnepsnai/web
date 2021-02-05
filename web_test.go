@@ -1,28 +1,44 @@
-package web
+package web_test
 
 import (
 	"crypto/rand"
 	"encoding/hex"
 	"io/ioutil"
 	"os"
-	"path"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/ecnepsnai/logtic"
+	"github.com/ecnepsnai/web"
 )
 
-var Verbose bool
-var server *Server
 var tmpDir string
 
-func isTestVerbose() bool {
-	for _, arg := range os.Args {
-		if arg == "-test.v=true" {
-			return true
+var serverLock = &sync.Mutex{}
+var servers = []*web.Server{}
+
+func newServer() *web.Server {
+	server := web.New(":0")
+	serverLock.Lock()
+	servers = append(servers, server)
+	serverLock.Unlock()
+	go server.Start()
+
+	// It can take a couple cycles for the server to be ready, so wait for the port to be populated before returning
+	i := 0
+	for i < 10 {
+		if server.ListenPort > 0 {
+			break
 		}
+		i++
+		time.Sleep(5 * time.Millisecond)
+	}
+	if server.ListenPort == 0 {
+		panic("Server didn't start in time")
 	}
 
-	return false
+	return server
 }
 
 func testSetup() {
@@ -32,38 +48,23 @@ func testSetup() {
 	}
 	tmpDir = t
 
-	if Verbose {
-		initLogtic()
-	}
-
-	server = New("127.0.0.1:9557")
-	testStartServer()
-}
-
-func testStartServer() {
-	go func() {
-		if err := server.Start(); err != nil {
-			panic(err)
+	for _, arg := range os.Args {
+		if arg == "-test.v=true" {
+			logtic.Log.Level = logtic.LevelDebug
+			logtic.Open()
 		}
-	}()
+	}
 }
 
 func testTeardown() {
-	server.Stop()
 	os.RemoveAll(tmpDir)
-	logtic.Close()
-}
 
-func initLogtic() {
-	logtic.Log.FilePath = path.Join(tmpDir, "web.log")
-	logtic.Log.Level = logtic.LevelDebug
-	if err := logtic.Open(); err != nil {
-		panic(err)
+	for _, server := range servers {
+		go server.Stop()
 	}
 }
 
 func TestMain(m *testing.M) {
-	Verbose = isTestVerbose()
 	testSetup()
 	retCode := m.Run()
 	testTeardown()
