@@ -71,7 +71,7 @@ func New(bindAddress string) *Server {
 func (s *Server) Start() error {
 	listener, err := net.Listen("tcp", s.BindAddress)
 	if err != nil {
-		log.Error("Error listening %s: %s", s.BindAddress, err.Error())
+		log.Error("Error listening on address '%s': %s", s.BindAddress, err.Error())
 		return err
 	}
 	s.listener = listener
@@ -100,7 +100,7 @@ type notFoundHandler struct {
 }
 
 func (n notFoundHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	log.Debug("HTTP %s %s -> %d", r.Method, r.RequestURI, 404)
+	log.Debug("HTTP Request: method=%s url='%s' response=%d elapsed=0ms", r.Method, r.RequestURI, 404)
 	if n.server.NotFoundHandler != nil {
 		n.server.NotFoundHandler(w, r)
 		return
@@ -114,7 +114,7 @@ type methodNotAllowedHandler struct {
 }
 
 func (n methodNotAllowedHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	log.Debug("HTTP %s %s -> %d", r.Method, r.RequestURI, 405)
+	log.Debug("HTTP Request: method=%s url='%s' response=%d elapsed=0ms", r.Method, r.RequestURI, 405)
 	if n.server.MethodNotAllowedHandler != nil {
 		n.server.MethodNotAllowedHandler(w, r)
 		return

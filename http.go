@@ -57,7 +57,7 @@ func (h HTTP) DELETE(path string, handle HTTPHandle, options HandleOptions) {
 }
 
 func (h HTTP) registerHTTPEndpoint(method string, path string, handle HTTPHandle, options HandleOptions) {
-	log.Debug("Register HTTP %s %s", method, path)
+	log.Debug("Register HTTP endpoint: method=%s path='%s'", method, path)
 	h.server.router.Handle(method, path, h.httpPreHandle(handle, options))
 }
 
@@ -71,10 +71,9 @@ func (h HTTP) httpPreHandle(endpointHandle HTTPHandle, options HandleOptions) ht
 			// We don't need to worry about this not being a number. Go's own HTTP server
 			// won't respond to requests like these
 			length, _ := strconv.ParseUint(request.Header.Get("Content-Length"), 10, 64)
-			log.Debug("Body length: %d", length)
 
 			if length > options.MaxBodyLength {
-				log.Error("Rejecting HTTP request with body length %d", length)
+				log.Error("Rejecting HTTP request with oversize body: body_length=%d", length)
 				w.WriteHeader(413)
 				return
 			}
@@ -127,14 +126,14 @@ func (h HTTP) httpPostHandle(endpointHandle HTTPHandle, userData interface{}) ht
 		if response.Status != 0 {
 			code = response.Status
 		}
-		log.Debug("HTTP Request: %s %s -> %d (%s)", r.Method, r.RequestURI, code, elapsed)
+		log.Debug("HTTP Request: method=%s url='%s' response=%d elapsed=%s", r.Method, r.RequestURI, code, elapsed)
 		w.WriteHeader(code)
 
 		if response.Reader != nil {
 			_, err := io.CopyBuffer(w, response.Reader, nil)
 			response.Reader.Close()
 			if err != nil {
-				log.Error("Error writing response for HTTP request %s %s: %s", r.Method, r.RequestURI, err.Error())
+				log.Error("Error writing response: method=%s url='%s' error='%s'", r.Method, r.RequestURI, err.Error())
 				return
 			}
 		}

@@ -51,7 +51,7 @@ func (a API) DELETE(path string, handle APIHandle, options HandleOptions) {
 }
 
 func (a API) registerAPIEndpoint(method string, path string, handle APIHandle, options HandleOptions) {
-	log.Debug("Register API %s %s", method, path)
+	log.Debug("Register API endpoint: method=%s path='%s'", method, path)
 	a.server.router.Handle(method, path, a.apiPreHandle(handle, options))
 }
 
@@ -67,7 +67,7 @@ func (a API) apiPreHandle(endpointHandle APIHandle, options HandleOptions) httpr
 			length, _ := strconv.ParseUint(request.Header.Get("Content-Length"), 10, 64)
 
 			if length > options.MaxBodyLength {
-				log.Error("Rejecting HTTP request with body length %d", length)
+				log.Error("Rejecting API request with oversize body: body_length=%d", length)
 				w.WriteHeader(413)
 				return
 			}
@@ -117,9 +117,9 @@ func (a API) apiPostHandle(endpointHandle APIHandle, userData interface{}) httpr
 			response.Code = 200
 			response.Data = data
 		}
-		log.Debug("API Request: %s %s -> %d (%s)", r.Method, r.RequestURI, response.Code, elapsed)
+		log.Debug("API Request: method=%s url='%s' response=%d elapsed=%s", r.Method, r.RequestURI, response.Code, elapsed)
 		if err := json.NewEncoder(w).Encode(response); err != nil {
-			log.Error("Error writing response for API request %s %s: %s", r.Method, r.RequestURI, err.Error())
+			log.Error("Error writing response: method=%s url='%s' error='%s'", r.Method, r.RequestURI, err.Error())
 		}
 	}
 }

@@ -14,7 +14,7 @@ func (s *Server) Socket(path string, handle SocketHandle, options HandleOptions)
 }
 
 func (s *Server) registerSocketEndpoint(method string, path string, handle SocketHandle, options HandleOptions) {
-	log.Debug("Register HTTP %s %s", method, path)
+	log.Debug("Register Websocket: method=%s path='%s'", method, path)
 	s.router.Handle(method, path, s.socketHandler(handle, options))
 }
 
@@ -58,6 +58,6 @@ func (s *Server) socketHandler(endpointHandle SocketHandle, options HandleOption
 		}, WSConn{
 			c: conn,
 		})
-		log.Debug("HTTP WS Request: ws://%s", r.RequestURI)
+		log.Debug("Websocket Request: method=%s url='%s'", r.Method, r.RequestURI)
 	}
 }

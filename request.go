@@ -38,7 +38,7 @@ func (w Writer) WriteHeader(statusCode int) {
 // Decode unmarshal the JSON body to the provided interface
 func (r Request) Decode(v interface{}) *Error {
 	if err := json.NewDecoder(r.HTTP.Body).Decode(v); err != nil {
-		log.Error("Invalid JSON request: %s", err.Error())
+		log.Error("Invalid JSON request: error='%s'", err.Error())
 		return CommonErrors.BadRequest
 	}
 
