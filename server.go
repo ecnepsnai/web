@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"sync"
 
+	"github.com/ecnepsnai/logtic"
 	"github.com/julienschmidt/httprouter"
 	"golang.org/x/time/rate"
 )
@@ -47,10 +48,11 @@ type Server struct {
 func New(bindAddress string) *Server {
 	httpRouter := httprouter.New()
 	server := Server{
-		BindAddress: bindAddress,
-		router:      httpRouter,
-		limits:      map[string]*rate.Limiter{},
-		limitLock:   &sync.Mutex{},
+		BindAddress:     bindAddress,
+		RequestLogLevel: logtic.LevelDebug,
+		router:          httpRouter,
+		limits:          map[string]*rate.Limiter{},
+		limitLock:       &sync.Mutex{},
 	}
 	httpRouter.NotFound = notFoundHandler{
 		server: &server,

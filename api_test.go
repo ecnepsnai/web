@@ -438,13 +438,12 @@ func TestAPILogLevel(t *testing.T) {
 	}
 	logFilePath := path.Join(tempDir, "web.log")
 	logtic.Log.FilePath = logFilePath
-	logtic.Log.Level = logtic.LevelInfo
+	logtic.Log.Level = logtic.LevelDebug
 	logtic.Open()
 	defer logtic.Close()
 	defer os.RemoveAll(tempDir)
 
 	server := newServer()
-	server.RequestLogLevel = logtic.LevelInfo
 
 	handle := func(request web.Request) (interface{}, *web.Error) {
 		return true, nil
@@ -455,20 +454,13 @@ func TestAPILogLevel(t *testing.T) {
 
 	server.API.GET("/"+path, handle, options)
 
-	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/%s", server.ListenPort, path))
-	if err != nil {
-		t.Fatalf("Network error getting: %s", err.Error())
-	}
-	if resp.StatusCode != 200 {
-		t.Fatalf("Unexpected HTTP status code. Expected %d got %d", 200, resp.StatusCode)
-	}
-	_, err = ioutil.ReadAll(resp.Body)
-	if err != nil {
-		t.Fatalf("Error reading response body: %s", err.Error())
-	}
+	http.Get(fmt.Sprintf("http://localhost:%d/%s", server.ListenPort, path))
+	server.RequestLogLevel = logtic.LevelInfo
+	http.Get(fmt.Sprintf("http://localhost:%d/%s", server.ListenPort, path))
 
 	logtic.Close()
-	logPattern := regexp.MustCompile("[0-9\\-:T]+ \\[INFO\\]\\[HTTP\\] API Request: method=GET url='/[A-Za-z0-9]+' response=200 elapsed=[0-9a-z]+")
+	debugPattern := regexp.MustCompile("[0-9\\-:T]+ \\[DEBUG\\]\\[HTTP\\] API Request: method=GET url='/[A-Za-z0-9]+' response=200 elapsed=[0-9a-z]+")
+	infoPattern := regexp.MustCompile("[0-9\\-:T]+ \\[INFO\\]\\[HTTP\\] API Request: method=GET url='/[A-Za-z0-9]+' response=200 elapsed=[0-9a-z]+")
 	f, err := os.OpenFile(logFilePath, os.O_RDONLY, 0644)
 	if err != nil {
 		panic(err)
@@ -480,7 +472,10 @@ func TestAPILogLevel(t *testing.T) {
 		panic(err)
 	}
 
-	if !logPattern.Match(logFileData) {
+	if !debugPattern.Match(logFileData) {
+		t.Errorf("Did not find expected log line for API request")
+	}
+	if !infoPattern.Match(logFileData) {
 		t.Errorf("Did not find expected log line for API request")
 	}
 
