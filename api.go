@@ -117,7 +117,7 @@ func (a API) apiPostHandle(endpointHandle APIHandle, userData interface{}) httpr
 			response.Code = 200
 			response.Data = data
 		}
-		log.Debug("API Request: method=%s url='%s' response=%d elapsed=%s", r.Method, r.RequestURI, response.Code, elapsed)
+		log.Write(a.server.RequestLogLevel, "API Request: method=%s url='%s' response=%d elapsed=%s", r.Method, r.RequestURI, response.Code, elapsed)
 		if err := json.NewEncoder(w).Encode(response); err != nil {
 			log.Error("Error writing response: method=%s url='%s' error='%s'", r.Method, r.RequestURI, err.Error())
 		}

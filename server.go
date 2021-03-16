@@ -33,11 +33,13 @@ type Server struct {
 	// limited will call the RateLimitedHandler, which you can override to customize the response.
 	// Setting this to 0 disables rate limiting.
 	MaxRequestsPerSecond int
-	router               *httprouter.Router
-	listener             net.Listener
-	shuttingDown         bool
-	limits               map[string]*rate.Limiter
-	limitLock            *sync.Mutex
+	// The level to use when logging out HTTP requests. Maps to github.com/ecnepsnai/logtic levels. Defaults to Debug.
+	RequestLogLevel int
+	router          *httprouter.Router
+	listener        net.Listener
+	shuttingDown    bool
+	limits          map[string]*rate.Limiter
+	limitLock       *sync.Mutex
 }
 
 // New create a new server object that will bind to the provided address. Does not start the service automatically.

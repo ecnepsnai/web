@@ -58,6 +58,6 @@ func (s *Server) socketHandler(endpointHandle SocketHandle, options HandleOption
 		}, WSConn{
 			c: conn,
 		})
-		log.Debug("Websocket Request: method=%s url='%s'", r.Method, r.RequestURI)
+		log.Write(s.RequestLogLevel, "Websocket Request: method=%s url='%s'", r.Method, r.RequestURI)
 	}
 }

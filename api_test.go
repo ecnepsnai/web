@@ -3,11 +3,16 @@ package web_test
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
+	"os"
+	"path"
+	"regexp"
 	"testing"
 	"time"
 
+	"github.com/ecnepsnai/logtic"
 	"github.com/ecnepsnai/web"
 )
 
@@ -422,5 +427,68 @@ func TestAPICookie(t *testing.T) {
 	}
 	if cookies[0].Value != cookieValue {
 		t.Fatalf("Incorrect cookie value")
+	}
+}
+
+func TestAPILogLevel(t *testing.T) {
+	logtic.Reset()
+	tempDir, err := os.MkdirTemp("", "web")
+	if err != nil {
+		panic(err)
+	}
+	logFilePath := path.Join(tempDir, "web.log")
+	logtic.Log.FilePath = logFilePath
+	logtic.Log.Level = logtic.LevelInfo
+	logtic.Open()
+	defer logtic.Close()
+	defer os.RemoveAll(tempDir)
+
+	server := newServer()
+	server.RequestLogLevel = logtic.LevelInfo
+
+	handle := func(request web.Request) (interface{}, *web.Error) {
+		return true, nil
+	}
+	options := web.HandleOptions{}
+
+	path := randomString(5)
+
+	server.API.GET("/"+path, handle, options)
+
+	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/%s", server.ListenPort, path))
+	if err != nil {
+		t.Fatalf("Network error getting: %s", err.Error())
+	}
+	if resp.StatusCode != 200 {
+		t.Fatalf("Unexpected HTTP status code. Expected %d got %d", 200, resp.StatusCode)
+	}
+	_, err = ioutil.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("Error reading response body: %s", err.Error())
+	}
+
+	logtic.Close()
+	logPattern := regexp.MustCompile("[0-9\\-:T]+ \\[INFO\\]\\[HTTP\\] API Request: method=GET url='/[A-Za-z0-9]+' response=200 elapsed=[0-9a-z]+")
+	f, err := os.OpenFile(logFilePath, os.O_RDONLY, 0644)
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+
+	logFileData, err := io.ReadAll(f)
+	if err != nil {
+		panic(err)
+	}
+
+	if !logPattern.Match(logFileData) {
+		t.Errorf("Did not find expected log line for API request")
+	}
+
+	logtic.Reset()
+	for _, arg := range os.Args {
+		if arg == "-test.v=true" {
+			logtic.Log.Level = logtic.LevelDebug
+			logtic.Open()
+		}
 	}
 }
