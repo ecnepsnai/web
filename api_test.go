@@ -454,8 +454,8 @@ func TestAPILogLevel(t *testing.T) {
 	http.Get(fmt.Sprintf("http://localhost:%d/%s", server.ListenPort, path))
 
 	logtic.Close()
-	debugPattern := regexp.MustCompile(`[0-9\-:T]+ \[DEBUG\]\[HTTP\] API Request: method=GET url='/[A-Za-z0-9]+' response=200 elapsed=[0-9a-z]+`)
-	infoPattern := regexp.MustCompile(`[0-9\-:T]+ \[INFO\]\[HTTP\] API Request: method=GET url='/[A-Za-z0-9]+' response=200 elapsed=[0-9a-z]+`)
+	debugPattern := regexp.MustCompile(`[0-9\-:TZ]+ \[DEBUG\]\[HTTP\] API Request: method=GET url='/[A-Za-z0-9]+' response=200 elapsed=[0-9a-z]+`)
+	infoPattern := regexp.MustCompile(`[0-9\-:TZ]+ \[INFO\]\[HTTP\] API Request: method=GET url='/[A-Za-z0-9]+' response=200 elapsed=[0-9a-z]+`)
 	f, err := os.OpenFile(logFilePath, os.O_RDONLY, 0644)
 	if err != nil {
 		panic(err)
