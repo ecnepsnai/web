@@ -3,7 +3,6 @@ package web_test
 import (
 	"crypto/rand"
 	"encoding/hex"
-	"io/ioutil"
 	"os"
 	"sync"
 	"testing"
@@ -12,8 +11,6 @@ import (
 	"github.com/ecnepsnai/logtic"
 	"github.com/ecnepsnai/web"
 )
-
-var tmpDir string
 
 var serverLock = &sync.Mutex{}
 var servers = []*web.Server{}
@@ -42,12 +39,6 @@ func newServer() *web.Server {
 }
 
 func testSetup() {
-	t, err := ioutil.TempDir("", "web")
-	if err != nil {
-		panic(err)
-	}
-	tmpDir = t
-
 	for _, arg := range os.Args {
 		if arg == "-test.v=true" {
 			logtic.Log.Level = logtic.LevelDebug
@@ -57,8 +48,6 @@ func testSetup() {
 }
 
 func testTeardown() {
-	os.RemoveAll(tmpDir)
-
 	for _, server := range servers {
 		go server.Stop()
 	}

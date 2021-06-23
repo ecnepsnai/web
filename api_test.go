@@ -432,16 +432,11 @@ func TestAPICookie(t *testing.T) {
 
 func TestAPILogLevel(t *testing.T) {
 	logtic.Reset()
-	tempDir, err := os.MkdirTemp("", "web")
-	if err != nil {
-		panic(err)
-	}
-	logFilePath := path.Join(tempDir, "web.log")
+	logFilePath := path.Join(t.TempDir(), "web.log")
 	logtic.Log.FilePath = logFilePath
 	logtic.Log.Level = logtic.LevelDebug
 	logtic.Open()
 	defer logtic.Close()
-	defer os.RemoveAll(tempDir)
 
 	server := newServer()
 
@@ -459,8 +454,8 @@ func TestAPILogLevel(t *testing.T) {
 	http.Get(fmt.Sprintf("http://localhost:%d/%s", server.ListenPort, path))
 
 	logtic.Close()
-	debugPattern := regexp.MustCompile("[0-9\\-:T]+ \\[DEBUG\\]\\[HTTP\\] API Request: method=GET url='/[A-Za-z0-9]+' response=200 elapsed=[0-9a-z]+")
-	infoPattern := regexp.MustCompile("[0-9\\-:T]+ \\[INFO\\]\\[HTTP\\] API Request: method=GET url='/[A-Za-z0-9]+' response=200 elapsed=[0-9a-z]+")
+	debugPattern := regexp.MustCompile(`[0-9\-:T]+ \[DEBUG\]\[HTTP\] API Request: method=GET url='/[A-Za-z0-9]+' response=200 elapsed=[0-9a-z]+`)
+	infoPattern := regexp.MustCompile(`[0-9\-:T]+ \[INFO\]\[HTTP\] API Request: method=GET url='/[A-Za-z0-9]+' response=200 elapsed=[0-9a-z]+`)
 	f, err := os.OpenFile(logFilePath, os.O_RDONLY, 0644)
 	if err != nil {
 		panic(err)
@@ -473,10 +468,10 @@ func TestAPILogLevel(t *testing.T) {
 	}
 
 	if !debugPattern.Match(logFileData) {
-		t.Errorf("Did not find expected log line for API request")
+		t.Errorf("Did not find expected log line for API request\n----\n%s\n----", logFileData)
 	}
 	if !infoPattern.Match(logFileData) {
-		t.Errorf("Did not find expected log line for API request")
+		t.Errorf("Did not find expected log line for API request\n----\n%s\n----", logFileData)
 	}
 
 	logtic.Reset()

@@ -195,15 +195,16 @@ func TestHTTPResponse(t *testing.T) {
 	t.Parallel()
 	server := newServer()
 
+	tmp := t.TempDir()
 	data := randomString(5)
 	name := randomString(5) + ".html"
 
-	if err := ioutil.WriteFile(path.Join(tmpDir, name), []byte(data), 0644); err != nil {
-		t.Fatalf("Error making tempory file: %s", err.Error())
+	if err := ioutil.WriteFile(path.Join(tmp, name), []byte(data), 0644); err != nil {
+		t.Fatalf("Error making temporary file: %s", err.Error())
 	}
 
 	handle := func(request web.Request, writer web.Writer) web.Response {
-		f, err := os.Open(path.Join(tmpDir, name))
+		f, err := os.Open(path.Join(tmp, name))
 		if err != nil {
 			t.Fatalf("Error opening temporary file: %s", err.Error())
 		}
@@ -302,16 +303,17 @@ func TestServeFile(t *testing.T) {
 	t.Parallel()
 	server := newServer()
 
+	tmp := t.TempDir()
 	data := randomString(5)
 	name := randomString(5) + ".html"
 
-	if err := ioutil.WriteFile(path.Join(tmpDir, name), []byte(data), 0644); err != nil {
-		t.Fatalf("Error making tempory file: %s", err.Error())
+	if err := ioutil.WriteFile(path.Join(tmp, name), []byte(data), 0644); err != nil {
+		t.Fatalf("Error making temporary file: %s", err.Error())
 	}
 
-	server.HTTP.Static("/static/*filepath", tmpDir)
+	server.HTTP.Static("/*filepath", tmp)
 
-	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/static/%s", server.ListenPort, name))
+	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/%s", server.ListenPort, name))
 	if err != nil {
 		t.Fatalf("Network error: %s", err.Error())
 	}

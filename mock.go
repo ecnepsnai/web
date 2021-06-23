@@ -45,15 +45,3 @@ func MockRequest(userData interface{}, params map[string]string, body interface{
 
 	return r
 }
-
-type mockHTTPWriter struct{}
-
-func (m mockHTTPWriter) Header() http.Header {
-	return http.Header{}
-}
-
-func (m mockHTTPWriter) Write(b []byte) (int, error) {
-	return len(b), nil
-}
-
-func (m mockHTTPWriter) WriteHeader(statusCode int) {}
