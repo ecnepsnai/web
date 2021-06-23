@@ -23,8 +23,16 @@ var upgrader = websocket.Upgrader{
 	WriteBufferSize: 1024,
 }
 
+func socketPanicRecover() {
+	if r := recover(); r != nil {
+		log.Error("Recovered from socket handle panic: %#v", r)
+	}
+}
+
 func (s *Server) socketHandler(endpointHandle SocketHandle, options HandleOptions) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		defer socketPanicRecover()
+
 		var userData interface{}
 
 		if s.isRateLimited(w, r) {

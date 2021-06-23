@@ -94,3 +94,22 @@ func TestWebsocketUnauthenticated(t *testing.T) {
 		t.Fatalf("Unexpected HTTP status code. Expected %d got %d", 401, resp.StatusCode)
 	}
 }
+
+func TestWebsocketPanic(t *testing.T) {
+	t.Parallel()
+	server := newServer()
+
+	options := web.HandleOptions{}
+
+	server.Socket("/socket", func(request web.Request, conn web.WSConn) {
+		panic("Oh no!")
+	}, options)
+
+	_, resp, err := websocket.DefaultDialer.Dial(fmt.Sprintf("ws://localhost:%d/socket", server.ListenPort), nil)
+	if err != nil && !strings.Contains(err.Error(), "bad handshake") {
+		t.Fatalf("Error connecting to websocket: %s", err.Error())
+	}
+	if resp == nil {
+		t.Fatalf("Nil response returned")
+	}
+}
