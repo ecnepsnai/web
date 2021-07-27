@@ -49,7 +49,7 @@ func (s *Server) socketHandler(endpointHandle SocketHandle, options HandleOption
 					log.PWarn("Rejected request to authenticated websocket endpoint", map[string]interface{}{
 						"url":         r.URL,
 						"method":      r.Method,
-						"remote_addr": r.RemoteAddr,
+						"remote_addr": getRealIP(r),
 					})
 					w.Header().Set("Content-Type", "application/json")
 					w.WriteHeader(http.StatusUnauthorized)
@@ -66,7 +66,7 @@ func (s *Server) socketHandler(endpointHandle SocketHandle, options HandleOption
 		if err != nil {
 			log.PError("Error upgrading client for websocket connection", map[string]interface{}{
 				"error":       err.Error(),
-				"remote_addr": r.RemoteAddr,
+				"remote_addr": getRealIP(r),
 			})
 			return
 		}
@@ -79,7 +79,7 @@ func (s *Server) socketHandler(endpointHandle SocketHandle, options HandleOption
 		log.PWrite(s.RequestLogLevel, "Websocket request", map[string]interface{}{
 			"method":      r.Method,
 			"url":         r.RequestURI,
-			"remote_addr": r.RemoteAddr,
+			"remote_addr": getRealIP(r),
 		})
 	}
 }

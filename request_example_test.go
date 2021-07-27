@@ -1,6 +1,10 @@
 package web_test
 
-import "github.com/ecnepsnai/web"
+import (
+	"fmt"
+
+	"github.com/ecnepsnai/web"
+)
 
 func ExampleRequest_DecodeJSON() {
 	server := web.New("127.0.0.1:8080")
@@ -22,6 +26,19 @@ func ExampleRequest_DecodeJSON() {
 		}, nil
 	}
 	server.API.POST("/users/user/:username", handle, web.HandleOptions{})
+
+	server.Start()
+}
+
+func ExampleRequest_ClientIPAddress() {
+	server := web.New("127.0.0.1:8080")
+
+	handle := func(request web.Request) (interface{}, *web.Error) {
+		clientAddr := request.ClientIPAddress().String()
+		fmt.Printf("%s\n", clientAddr)
+		return clientAddr, nil
+	}
+	server.API.POST("/ip/my_ip", handle, web.HandleOptions{})
 
 	server.Start()
 }

@@ -86,7 +86,7 @@ func (a API) apiPreHandle(endpointHandle APIHandle, options HandleOptions) httpr
 					log.PWarn("Rejected request to authenticated API endpoint", map[string]interface{}{
 						"url":         request.URL,
 						"method":      request.Method,
-						"remote_addr": request.RemoteAddr,
+						"remote_addr": getRealIP(request),
 					})
 					w.Header().Set("Content-Type", "application/json")
 					w.WriteHeader(http.StatusUnauthorized)
@@ -128,7 +128,7 @@ func (a API) apiPostHandle(endpointHandle APIHandle, userData interface{}) httpr
 			response.Data = data
 		}
 		log.PWrite(a.server.RequestLogLevel, "API Request", map[string]interface{}{
-			"remote_addr": r.RemoteAddr,
+			"remote_addr": getRealIP(r),
 			"method":      r.Method,
 			"url":         r.URL,
 			"elapsed":     elapsed.String(),

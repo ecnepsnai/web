@@ -2,6 +2,7 @@ package web
 
 import (
 	"encoding/json"
+	"net"
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
@@ -45,4 +46,23 @@ func (r Request) DecodeJSON(v interface{}) *Error {
 	}
 
 	return nil
+}
+
+// ClientIPAddress returns the IP address of the client. It supports the 'X-Real-IP' and 'X-Forwarded-For' headers.
+func (r Request) ClientIPAddress() net.IP {
+	return getRealIP(r.HTTP)
+}
+
+func getRealIP(r *http.Request) net.IP {
+	if ip := net.ParseIP(r.Header.Get("X-Real-IP")); ip != nil {
+		return ip
+	}
+	if ip := net.ParseIP(r.Header.Get("X-Forwarded-For")); ip != nil {
+		return ip
+	}
+	if ip := net.ParseIP(getIPFromRemoteAddr(r.RemoteAddr)); ip != nil {
+		return ip
+	}
+
+	panic("Unable to determine IP address from request")
 }
