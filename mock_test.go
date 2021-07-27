@@ -16,7 +16,7 @@ func TestMock(t *testing.T) {
 	handle := func(request web.Request) (interface{}, *web.Error) {
 		example := exampleType{}
 
-		if err := request.Decode(&example); err != nil {
+		if err := request.DecodeJSON(&example); err != nil {
 			t.Error("Error decoding example JSON object from mocked request")
 		}
 		if !example.Enabled {

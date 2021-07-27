@@ -49,7 +49,7 @@ func ExampleAPI_POST() {
 	handle := func(request web.Request) (interface{}, *web.Error) {
 		username := request.Params.ByName("username")
 		params := userRequestType{}
-		if err := request.Decode(&params); err != nil {
+		if err := request.DecodeJSON(&params); err != nil {
 			return nil, err
 		}
 
@@ -73,7 +73,7 @@ func ExampleAPI_PUT() {
 	handle := func(request web.Request) (interface{}, *web.Error) {
 		username := request.Params.ByName("username")
 		params := userRequestType{}
-		if err := request.Decode(&params); err != nil {
+		if err := request.DecodeJSON(&params); err != nil {
 			return nil, err
 		}
 
@@ -97,7 +97,7 @@ func ExampleAPI_PATCH() {
 	handle := func(request web.Request) (interface{}, *web.Error) {
 		username := request.Params.ByName("username")
 		params := userRequestType{}
-		if err := request.Decode(&params); err != nil {
+		if err := request.DecodeJSON(&params); err != nil {
 			return nil, err
 		}
 

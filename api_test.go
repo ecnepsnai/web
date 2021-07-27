@@ -273,7 +273,7 @@ func TestAPIValidJSON(t *testing.T) {
 		}
 
 		example := exampleType{}
-		if err := request.Decode(&example); err != nil {
+		if err := request.DecodeJSON(&example); err != nil {
 			return nil, web.CommonErrors.BadRequest
 		}
 		return true, nil
@@ -316,7 +316,7 @@ func TestAPIInvalidJSON(t *testing.T) {
 		}
 
 		example := exampleType{}
-		if err := request.Decode(&example); err != nil {
+		if err := request.DecodeJSON(&example); err != nil {
 			return nil, web.CommonErrors.BadRequest
 		}
 		return true, nil

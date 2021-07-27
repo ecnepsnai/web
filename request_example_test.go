@@ -2,7 +2,7 @@ package web_test
 
 import "github.com/ecnepsnai/web"
 
-func ExampleRequest_Decode() {
+func ExampleRequest_DecodeJSON() {
 	server := web.New("127.0.0.1:8080")
 
 	type userRequestType struct {
@@ -12,7 +12,7 @@ func ExampleRequest_Decode() {
 	handle := func(request web.Request) (interface{}, *web.Error) {
 		username := request.Params.ByName("username")
 		params := userRequestType{}
-		if err := request.Decode(&params); err != nil {
+		if err := request.DecodeJSON(&params); err != nil {
 			return nil, err
 		}
 

@@ -35,8 +35,8 @@ func (w Writer) WriteHeader(statusCode int) {
 	w.w.WriteHeader(statusCode)
 }
 
-// Decode unmarshal the JSON body to the provided interface
-func (r Request) Decode(v interface{}) *Error {
+// DecodeJSON unmarshal the JSON body to the provided interface
+func (r Request) DecodeJSON(v interface{}) *Error {
 	if err := json.NewDecoder(r.HTTP.Body).Decode(v); err != nil {
 		log.PError("Invalid JSON request", map[string]interface{}{
 			"error": err.Error(),
