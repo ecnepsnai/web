@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path"
@@ -60,7 +59,7 @@ func TestAPIAuthenticated(t *testing.T) {
 	if resp.StatusCode != 200 {
 		t.Fatalf("Unexpected HTTP status code. Expected %d got %d", 200, resp.StatusCode)
 	}
-	_, err = ioutil.ReadAll(resp.Body)
+	_, err = io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatalf("Error reading response body: %s", err.Error())
 	}
@@ -95,7 +94,7 @@ func TestAPIUnauthenticated(t *testing.T) {
 	if resp.StatusCode != 401 {
 		t.Fatalf("Unexpected HTTP status code. Expected %d got %d", 401, resp.StatusCode)
 	}
-	_, err = ioutil.ReadAll(resp.Body)
+	_, err = io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatalf("Error reading response body: %s", err.Error())
 	}
@@ -116,7 +115,7 @@ func TestAPINotFound(t *testing.T) {
 	if resp.StatusCode != 404 {
 		t.Fatalf("Unexpected HTTP status code. Expected %d got %d", 404, resp.StatusCode)
 	}
-	_, err = ioutil.ReadAll(resp.Body)
+	_, err = io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatalf("Error reading response body: %s", err.Error())
 	}
@@ -150,7 +149,7 @@ func TestAPIMethodNotAllowed(t *testing.T) {
 	if resp.StatusCode != 405 {
 		t.Fatalf("Unexpected HTTP status code. Expected %d got %d", 405, resp.StatusCode)
 	}
-	_, err = ioutil.ReadAll(resp.Body)
+	_, err = io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatalf("Error reading response body: %s", err.Error())
 	}
@@ -184,7 +183,7 @@ func TestAPIHandleError(t *testing.T) {
 	if resp.StatusCode != 400 {
 		t.Fatalf("Unexpected HTTP status code. Expected %d got %d", 400, resp.StatusCode)
 	}
-	_, err = ioutil.ReadAll(resp.Body)
+	_, err = io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatalf("Error reading response body: %s", err.Error())
 	}
@@ -257,7 +256,7 @@ func TestAPILargeBody(t *testing.T) {
 	if resp.StatusCode != 413 {
 		t.Fatalf("Unexpected HTTP status code. Expected %d got %d", 413, resp.StatusCode)
 	}
-	_, err = ioutil.ReadAll(resp.Body)
+	_, err = io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatalf("Error reading response body: %s", err.Error())
 	}
@@ -300,7 +299,7 @@ func TestAPIValidJSON(t *testing.T) {
 	if resp.StatusCode != 200 {
 		t.Fatalf("Unexpected HTTP status code. Expected %d got %d", 200, resp.StatusCode)
 	}
-	_, err = ioutil.ReadAll(resp.Body)
+	_, err = io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatalf("Error reading response body: %s", err.Error())
 	}
@@ -339,7 +338,7 @@ func TestAPIInvalidJSON(t *testing.T) {
 	if resp.StatusCode != 400 {
 		t.Fatalf("Unexpected HTTP status code. Expected %d got %d", 400, resp.StatusCode)
 	}
-	_, err = ioutil.ReadAll(resp.Body)
+	_, err = io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatalf("Error reading response body: %s", err.Error())
 	}

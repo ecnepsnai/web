@@ -2,7 +2,7 @@ package web_test
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 	"testing"
@@ -97,7 +97,7 @@ func TestNotFoundHandle(t *testing.T) {
 		if resp.StatusCode != 404 {
 			t.Fatalf("Unexpected status code. Expected %d Got %d", 404, resp.StatusCode)
 		}
-		body, _ := ioutil.ReadAll(resp.Body)
+		body, _ := io.ReadAll(resp.Body)
 		if string(body) != htmlResponse {
 			t.Fatalf("Unexpected body %v", body)
 		}
@@ -114,7 +114,7 @@ func TestNotFoundHandle(t *testing.T) {
 		if resp.StatusCode != 404 {
 			t.Fatalf("Unexpected status code. Expected %d Got %d", 404, resp.StatusCode)
 		}
-		body, _ := ioutil.ReadAll(resp.Body)
+		body, _ := io.ReadAll(resp.Body)
 		if string(body) != jsonResponse {
 			t.Fatalf("Unexpected body %v", body)
 		}
@@ -130,7 +130,7 @@ func TestNotFoundHandle(t *testing.T) {
 		if resp.StatusCode != 404 {
 			t.Fatalf("Unexpected status code. Expected %d Got %d", 404, resp.StatusCode)
 		}
-		body, _ := ioutil.ReadAll(resp.Body)
+		body, _ := io.ReadAll(resp.Body)
 		if string(body) != plainResponse {
 			t.Fatalf("Unexpected body %v", body)
 		}
@@ -173,7 +173,7 @@ func TestMethodNotAllowed(t *testing.T) {
 		if resp.StatusCode != 405 {
 			t.Fatalf("Unexpected status code. Expected %d Got %d", 405, resp.StatusCode)
 		}
-		body, _ := ioutil.ReadAll(resp.Body)
+		body, _ := io.ReadAll(resp.Body)
 		if string(body) != htmlResponse {
 			t.Fatalf("Unexpected body %v", body)
 		}
@@ -190,7 +190,7 @@ func TestMethodNotAllowed(t *testing.T) {
 		if resp.StatusCode != 405 {
 			t.Fatalf("Unexpected status code. Expected %d Got %d", 405, resp.StatusCode)
 		}
-		body, _ := ioutil.ReadAll(resp.Body)
+		body, _ := io.ReadAll(resp.Body)
 		if string(body) != jsonResponse {
 			t.Fatalf("Unexpected body %v", body)
 		}
@@ -206,7 +206,7 @@ func TestMethodNotAllowed(t *testing.T) {
 		if resp.StatusCode != 405 {
 			t.Fatalf("Unexpected status code. Expected %d Got %d", 405, resp.StatusCode)
 		}
-		body, _ := ioutil.ReadAll(resp.Body)
+		body, _ := io.ReadAll(resp.Body)
 		if string(body) != plainResponse {
 			t.Fatalf("Unexpected body %v", body)
 		}

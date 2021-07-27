@@ -1,6 +1,6 @@
 module github.com/ecnepsnai/web
 
-go 1.14
+go 1.16
 
 require (
 	github.com/ecnepsnai/logtic v1.4.1

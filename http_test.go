@@ -3,7 +3,7 @@ package web_test
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"path"
@@ -60,7 +60,7 @@ func TestHTTPAuthenticated(t *testing.T) {
 	if resp.StatusCode != 200 {
 		t.Fatalf("Unexpected HTTP status code. Expected %d got %d", 200, resp.StatusCode)
 	}
-	_, err = ioutil.ReadAll(resp.Body)
+	_, err = io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatalf("Error reading response body: %s", err.Error())
 	}
@@ -94,7 +94,7 @@ func TestHTTPUnauthenticated(t *testing.T) {
 	if resp.StatusCode != 401 {
 		t.Fatalf("Unexpected HTTP status code. Expected %d got %d", 401, resp.StatusCode)
 	}
-	_, err = ioutil.ReadAll(resp.Body)
+	_, err = io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatalf("Error reading response body: %s", err.Error())
 	}
@@ -115,7 +115,7 @@ func TestHTTPNotFound(t *testing.T) {
 	if resp.StatusCode != 404 {
 		t.Fatalf("Unexpected HTTP status code. Expected %d got %d", 404, resp.StatusCode)
 	}
-	_, err = ioutil.ReadAll(resp.Body)
+	_, err = io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatalf("Error reading response body: %s", err.Error())
 	}
@@ -149,7 +149,7 @@ func TestHTTPMethodNotAllowed(t *testing.T) {
 	if resp.StatusCode != 405 {
 		t.Fatalf("Unexpected HTTP status code. Expected %d got %d", 405, resp.StatusCode)
 	}
-	_, err = ioutil.ReadAll(resp.Body)
+	_, err = io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatalf("Error reading response body: %s", err.Error())
 	}
@@ -185,7 +185,7 @@ func TestHTTPHandleError(t *testing.T) {
 	if resp.StatusCode != 403 {
 		t.Fatalf("Unexpected HTTP status code. Expected %d got %d", 403, resp.StatusCode)
 	}
-	_, err = ioutil.ReadAll(resp.Body)
+	_, err = io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatalf("Error reading response body: %s", err.Error())
 	}
@@ -199,7 +199,7 @@ func TestHTTPResponse(t *testing.T) {
 	data := randomString(5)
 	name := randomString(5) + ".html"
 
-	if err := ioutil.WriteFile(path.Join(tmp, name), []byte(data), 0644); err != nil {
+	if err := os.WriteFile(path.Join(tmp, name), []byte(data), 0644); err != nil {
 		t.Fatalf("Error making temporary file: %s", err.Error())
 	}
 
@@ -228,7 +228,7 @@ func TestHTTPResponse(t *testing.T) {
 	if resp.StatusCode != 200 {
 		t.Fatalf("Unexpected HTTP status code. Expected %d got %d", 200, resp.StatusCode)
 	}
-	_, err = ioutil.ReadAll(resp.Body)
+	_, err = io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatalf("Error reading response body: %s", err.Error())
 	}
@@ -307,7 +307,7 @@ func TestServeFile(t *testing.T) {
 	data := randomString(5)
 	name := randomString(5) + ".html"
 
-	if err := ioutil.WriteFile(path.Join(tmp, name), []byte(data), 0644); err != nil {
+	if err := os.WriteFile(path.Join(tmp, name), []byte(data), 0644); err != nil {
 		t.Fatalf("Error making temporary file: %s", err.Error())
 	}
 
@@ -323,7 +323,7 @@ func TestServeFile(t *testing.T) {
 	if resp.StatusCode != 200 {
 		t.Fatalf("Unexpected HTTP status code. Expected %d got %d", 200, resp.StatusCode)
 	}
-	_, err = ioutil.ReadAll(resp.Body)
+	_, err = io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatalf("Error reading response body: %s", err.Error())
 	}
@@ -396,7 +396,7 @@ func TestHTTPLargeBody(t *testing.T) {
 	if resp.StatusCode != 413 {
 		t.Fatalf("Unexpected HTTP status code. Expected %d got %d", 413, resp.StatusCode)
 	}
-	_, err = ioutil.ReadAll(resp.Body)
+	_, err = io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatalf("Error reading response body: %s", err.Error())
 	}

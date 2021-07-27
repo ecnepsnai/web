@@ -3,7 +3,7 @@ package web
 import (
 	"bytes"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
@@ -31,7 +31,7 @@ func MockRequest(userData interface{}, params map[string]string, body interface{
 
 	r := Request{
 		HTTP: &http.Request{
-			Body: ioutil.NopCloser(bytes.NewReader(data)),
+			Body: io.NopCloser(bytes.NewReader(data)),
 			Header: http.Header{
 				"User-Agent": []string{"go test"},
 			},
