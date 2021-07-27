@@ -14,7 +14,10 @@ func (s *Server) Socket(path string, handle SocketHandle, options HandleOptions)
 }
 
 func (s *Server) registerSocketEndpoint(method string, path string, handle SocketHandle, options HandleOptions) {
-	log.Debug("Register Websocket: method=%s path='%s'", method, path)
+	log.PDebug("Register websocket", map[string]interface{}{
+		"method": method,
+		"path":   path,
+	})
 	s.router.Handle(method, path, s.socketHandler(handle, options))
 }
 
@@ -43,7 +46,11 @@ func (s *Server) socketHandler(endpointHandle SocketHandle, options HandleOption
 			userData = options.AuthenticateMethod(r)
 			if isUserdataNil(userData) {
 				if options.UnauthorizedMethod == nil {
-					log.Warn("Rejected authenticated request")
+					log.PWarn("Rejected request to authenticated websocket endpoint", map[string]interface{}{
+						"url":         r.URL,
+						"method":      r.Method,
+						"remote_addr": r.RemoteAddr,
+					})
 					w.Header().Set("Content-Type", "application/json")
 					w.WriteHeader(http.StatusUnauthorized)
 					json.NewEncoder(w).Encode(Error{401, "Unauthorized"})
@@ -57,7 +64,10 @@ func (s *Server) socketHandler(endpointHandle SocketHandle, options HandleOption
 
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
-			log.Error("Error upgrading client for websocket connection: %s", err.Error())
+			log.PError("Error upgrading client for websocket connection", map[string]interface{}{
+				"error":       err.Error(),
+				"remote_addr": r.RemoteAddr,
+			})
 			return
 		}
 		endpointHandle(Request{
@@ -66,6 +76,10 @@ func (s *Server) socketHandler(endpointHandle SocketHandle, options HandleOption
 		}, WSConn{
 			c: conn,
 		})
-		log.Write(s.RequestLogLevel, "Websocket Request: method=%s url='%s'", r.Method, r.RequestURI)
+		log.PWrite(s.RequestLogLevel, "Websocket request", map[string]interface{}{
+			"method":      r.Method,
+			"url":         r.RequestURI,
+			"remote_addr": r.RemoteAddr,
+		})
 	}
 }

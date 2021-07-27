@@ -4,6 +4,7 @@ import (
 	"net"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/ecnepsnai/logtic"
 	"github.com/julienschmidt/httprouter"
@@ -75,12 +76,18 @@ func New(bindAddress string) *Server {
 func (s *Server) Start() error {
 	listener, err := net.Listen("tcp", s.BindAddress)
 	if err != nil {
-		log.Error("Error listening on address '%s': %s", s.BindAddress, err.Error())
+		log.PError("Error listening on address", map[string]interface{}{
+			"listen_address": s.BindAddress,
+			"error":          err.Error(),
+		})
 		return err
 	}
 	s.listener = listener
 	s.ListenPort = uint16(listener.Addr().(*net.TCPAddr).Port)
-	log.Info("HTTP server listen: bind_address='%s' listen_port=%d", s.BindAddress, s.ListenPort)
+	log.PInfo("HTTP server listen", map[string]interface{}{
+		"listen_address": s.BindAddress,
+		"listen_port":    s.ListenPort,
+	})
 	if err := http.Serve(listener, s.router); err != nil {
 		if s.shuttingDown {
 			log.Info("HTTP server stopped")
@@ -104,7 +111,13 @@ type notFoundHandler struct {
 }
 
 func (n notFoundHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	log.Debug("HTTP Request: method=%s url='%s' response=%d elapsed=0ms", r.Method, r.RequestURI, 404)
+	log.PWrite(n.server.RequestLogLevel, "HTTP Request", map[string]interface{}{
+		"remote_addr": r.RemoteAddr,
+		"method":      r.Method,
+		"url":         r.URL,
+		"elapsed":     time.Duration(0).String(),
+		"status":      404,
+	})
 	if n.server.NotFoundHandler != nil {
 		n.server.NotFoundHandler(w, r)
 		return
@@ -118,7 +131,13 @@ type methodNotAllowedHandler struct {
 }
 
 func (n methodNotAllowedHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	log.Debug("HTTP Request: method=%s url='%s' response=%d elapsed=0ms", r.Method, r.RequestURI, 405)
+	log.PWrite(n.server.RequestLogLevel, "HTTP Request", map[string]interface{}{
+		"remote_addr": r.RemoteAddr,
+		"method":      r.Method,
+		"url":         r.URL,
+		"elapsed":     time.Duration(0).String(),
+		"status":      405,
+	})
 	if n.server.MethodNotAllowedHandler != nil {
 		n.server.MethodNotAllowedHandler(w, r)
 		return
@@ -145,8 +164,18 @@ func (s *Server) isRateLimited(w http.ResponseWriter, r *http.Request) bool {
 	}
 
 	if !limiter.Allow() {
-		log.Warn("Rate-limiting request: url='%s' remote_addr='%s'", r.URL.String(), r.RemoteAddr)
-		log.Debug("HTTP %s %s -> %d", r.Method, r.RequestURI, 429)
+		log.PWarn("Rate-limiting request", map[string]interface{}{
+			"remote_addr": r.RemoteAddr,
+			"method":      r.Method,
+			"url":         r.URL,
+		})
+		log.PWrite(s.RequestLogLevel, "HTTP Request", map[string]interface{}{
+			"remote_addr": r.RemoteAddr,
+			"method":      r.Method,
+			"url":         r.URL,
+			"elapsed":     time.Duration(0).String(),
+			"status":      429,
+		})
 		if s.RateLimitedHandler != nil {
 			s.RateLimitedHandler(w, r)
 		} else {

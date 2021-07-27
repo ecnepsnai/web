@@ -17,7 +17,10 @@ type HTTP struct {
 
 // Static serve static files matching the request path to the given directory
 func (h HTTP) Static(path string, directory string) {
-	log.Debug("Serving files from '%s' matching path '%s'", directory, path)
+	log.PDebug("Serving files from directory", map[string]interface{}{
+		"directory": directory,
+		"path":      path,
+	})
 	h.server.router.ServeFiles(path, http.Dir(directory))
 }
 
@@ -57,7 +60,10 @@ func (h HTTP) DELETE(path string, handle HTTPHandle, options HandleOptions) {
 }
 
 func (h HTTP) registerHTTPEndpoint(method string, path string, handle HTTPHandle, options HandleOptions) {
-	log.Debug("Register HTTP endpoint: method=%s path='%s'", method, path)
+	log.PDebug("Register HTTP endpoint", map[string]interface{}{
+		"method": method,
+		"path":   path,
+	})
 	h.server.router.Handle(method, path, h.httpPreHandle(handle, options))
 }
 
@@ -73,7 +79,10 @@ func (h HTTP) httpPreHandle(endpointHandle HTTPHandle, options HandleOptions) ht
 			length, _ := strconv.ParseUint(request.Header.Get("Content-Length"), 10, 64)
 
 			if length > options.MaxBodyLength {
-				log.Error("Rejecting HTTP request with oversize body: body_length=%d", length)
+				log.PError("Rejecting HTTP request with oversized body", map[string]interface{}{
+					"body_length": length,
+					"max_length":  options.MaxBodyLength,
+				})
 				w.WriteHeader(413)
 				return
 			}
@@ -83,7 +92,11 @@ func (h HTTP) httpPreHandle(endpointHandle HTTPHandle, options HandleOptions) ht
 			userData := options.AuthenticateMethod(request)
 			if isUserdataNil(userData) {
 				if options.UnauthorizedMethod == nil {
-					log.Warn("Rejected authenticated request")
+					log.PWarn("Rejected request to authenticated HTTP endpoint", map[string]interface{}{
+						"url":         request.URL,
+						"method":      request.Method,
+						"remote_addr": request.RemoteAddr,
+					})
 					w.Header().Set("Content-Type", "text/html")
 					w.WriteHeader(http.StatusUnauthorized)
 					w.Write([]byte("<html><head><title>Unauthorized</title></head><body><h1>Unauthorized</h1></body></html>"))
@@ -126,14 +139,24 @@ func (h HTTP) httpPostHandle(endpointHandle HTTPHandle, userData interface{}) ht
 		if response.Status != 0 {
 			code = response.Status
 		}
-		log.Write(h.server.RequestLogLevel, "HTTP Request: method=%s url='%s' response=%d elapsed=%s", r.Method, r.RequestURI, code, elapsed)
+		log.PWrite(h.server.RequestLogLevel, "HTTP Request", map[string]interface{}{
+			"remote_addr": r.RemoteAddr,
+			"method":      r.Method,
+			"url":         r.URL,
+			"elapsed":     elapsed.String(),
+			"status":      code,
+		})
 		w.WriteHeader(code)
 
 		if response.Reader != nil {
 			_, err := io.CopyBuffer(w, response.Reader, nil)
 			response.Reader.Close()
 			if err != nil {
-				log.Error("Error writing response: method=%s url='%s' error='%s'", r.Method, r.RequestURI, err.Error())
+				log.PError("Error writing response", map[string]interface{}{
+					"method": r.Method,
+					"url":    r.URL,
+					"error":  err.Error(),
+				})
 				return
 			}
 		}

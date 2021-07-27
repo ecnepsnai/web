@@ -51,7 +51,10 @@ func (a API) DELETE(path string, handle APIHandle, options HandleOptions) {
 }
 
 func (a API) registerAPIEndpoint(method string, path string, handle APIHandle, options HandleOptions) {
-	log.Debug("Register API endpoint: method=%s path='%s'", method, path)
+	log.PDebug("Register API endpoint", map[string]interface{}{
+		"method": method,
+		"path":   path,
+	})
 	a.server.router.Handle(method, path, a.apiPreHandle(handle, options))
 }
 
@@ -67,7 +70,10 @@ func (a API) apiPreHandle(endpointHandle APIHandle, options HandleOptions) httpr
 			length, _ := strconv.ParseUint(request.Header.Get("Content-Length"), 10, 64)
 
 			if length > options.MaxBodyLength {
-				log.Error("Rejecting API request with oversize body: body_length=%d", length)
+				log.PError("Rejecting API request with oversized body", map[string]interface{}{
+					"body_length": length,
+					"max_length":  options.MaxBodyLength,
+				})
 				w.WriteHeader(413)
 				return
 			}
@@ -77,7 +83,11 @@ func (a API) apiPreHandle(endpointHandle APIHandle, options HandleOptions) httpr
 			userData := options.AuthenticateMethod(request)
 			if isUserdataNil(userData) {
 				if options.UnauthorizedMethod == nil {
-					log.Warn("Rejected authenticated request")
+					log.PWarn("Rejected request to authenticated API endpoint", map[string]interface{}{
+						"url":         request.URL,
+						"method":      request.Method,
+						"remote_addr": request.RemoteAddr,
+					})
 					w.Header().Set("Content-Type", "application/json")
 					w.WriteHeader(http.StatusUnauthorized)
 					json.NewEncoder(w).Encode(Error{401, "Unauthorized"})
@@ -117,9 +127,19 @@ func (a API) apiPostHandle(endpointHandle APIHandle, userData interface{}) httpr
 			response.Code = 200
 			response.Data = data
 		}
-		log.Write(a.server.RequestLogLevel, "API Request: method=%s url='%s' response=%d elapsed=%s", r.Method, r.RequestURI, response.Code, elapsed)
+		log.PWrite(a.server.RequestLogLevel, "API Request", map[string]interface{}{
+			"remote_addr": r.RemoteAddr,
+			"method":      r.Method,
+			"url":         r.URL,
+			"elapsed":     elapsed.String(),
+			"status":      response.Code,
+		})
 		if err := json.NewEncoder(w).Encode(response); err != nil {
-			log.Error("Error writing response: method=%s url='%s' error='%s'", r.Method, r.RequestURI, err.Error())
+			log.PError("Error writing response", map[string]interface{}{
+				"method": r.Method,
+				"url":    r.URL,
+				"error":  err.Error(),
+			})
 		}
 	}
 }
