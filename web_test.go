@@ -42,7 +42,7 @@ func testSetup() {
 	for _, arg := range os.Args {
 		if arg == "-test.v=true" {
 			logtic.Log.Level = logtic.LevelDebug
-			logtic.Open()
+			logtic.Log.Open()
 		}
 	}
 }

@@ -11,4 +11,4 @@ package web
 
 import "github.com/ecnepsnai/logtic"
 
-var log = logtic.Connect("HTTP")
+var log = logtic.Log.Connect("HTTP")

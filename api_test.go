@@ -430,12 +430,12 @@ func TestAPICookie(t *testing.T) {
 }
 
 func TestAPILogLevel(t *testing.T) {
-	logtic.Reset()
+	logtic.Log.Reset()
 	logFilePath := path.Join(t.TempDir(), "web.log")
 	logtic.Log.FilePath = logFilePath
 	logtic.Log.Level = logtic.LevelDebug
-	logtic.Open()
-	defer logtic.Close()
+	logtic.Log.Open()
+	defer logtic.Log.Close()
 
 	server := newServer()
 
@@ -452,7 +452,7 @@ func TestAPILogLevel(t *testing.T) {
 	server.RequestLogLevel = logtic.LevelInfo
 	http.Get(fmt.Sprintf("http://localhost:%d/%s", server.ListenPort, path))
 
-	logtic.Close()
+	logtic.Log.Close()
 	debugPattern := regexp.MustCompile(`[0-9\-:TZ]+ \[DEBUG\]\[HTTP\] API Request: elapsed='[^']+' method='GET' remote_addr='[^']+' status=200 url='[^']+'`)
 	infoPattern := regexp.MustCompile(`[0-9\-:TZ]+ \[INFO\]\[HTTP\] API Request: elapsed='[^']+' method='GET' remote_addr='[^']+' status=200 url='[^']+'`)
 	f, err := os.OpenFile(logFilePath, os.O_RDONLY, 0644)
@@ -473,11 +473,11 @@ func TestAPILogLevel(t *testing.T) {
 		t.Errorf("Did not find expected log line for API request\n----\n%s\n----", logFileData)
 	}
 
-	logtic.Reset()
+	logtic.Log.Reset()
 	for _, arg := range os.Args {
 		if arg == "-test.v=true" {
 			logtic.Log.Level = logtic.LevelDebug
-			logtic.Open()
+			logtic.Log.Open()
 		}
 	}
 }
