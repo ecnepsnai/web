@@ -311,7 +311,7 @@ func TestServeFile(t *testing.T) {
 		t.Fatalf("Error making temporary file: %s", err.Error())
 	}
 
-	server.HTTP.Static("/*filepath", tmp)
+	server.HTTP.Static("/", tmp)
 
 	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/%s", server.ListenPort, name))
 	if err != nil {

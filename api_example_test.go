@@ -6,7 +6,7 @@ func ExampleAPI_GET() {
 	server := web.New("127.0.0.1:8080")
 
 	handle := func(request web.Request) (interface{}, *web.Error) {
-		username := request.Params.ByName("username")
+		username := request.Parameters["username"]
 
 		return map[string]string{
 			"username": username,
@@ -47,7 +47,7 @@ func ExampleAPI_POST() {
 	}
 
 	handle := func(request web.Request) (interface{}, *web.Error) {
-		username := request.Params.ByName("username")
+		username := request.Parameters["username"]
 		params := userRequestType{}
 		if err := request.DecodeJSON(&params); err != nil {
 			return nil, err
@@ -71,7 +71,7 @@ func ExampleAPI_PUT() {
 	}
 
 	handle := func(request web.Request) (interface{}, *web.Error) {
-		username := request.Params.ByName("username")
+		username := request.Parameters["username"]
 		params := userRequestType{}
 		if err := request.DecodeJSON(&params); err != nil {
 			return nil, err
@@ -95,7 +95,7 @@ func ExampleAPI_PATCH() {
 	}
 
 	handle := func(request web.Request) (interface{}, *web.Error) {
-		username := request.Params.ByName("username")
+		username := request.Parameters["username"]
 		params := userRequestType{}
 		if err := request.DecodeJSON(&params); err != nil {
 			return nil, err
@@ -115,7 +115,7 @@ func ExampleAPI_DELETE() {
 	server := web.New("127.0.0.1:8080")
 
 	handle := func(request web.Request) (interface{}, *web.Error) {
-		username := request.Params.ByName("username")
+		username := request.Parameters["username"]
 
 		return map[string]string{
 			"username": username,

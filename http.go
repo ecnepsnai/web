@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/julienschmidt/httprouter"
+	"github.com/ecnepsnai/web/router"
 )
 
 // HTTP describes a HTTP server. HTTP handles are expected to return a reader and specify the content
@@ -15,13 +15,27 @@ type HTTP struct {
 	server *Server
 }
 
-// Static serve static files matching the request path to the given directory
+// Static registers a handler for all requests under path to serve any files matching the directory.
+//
+// For example:
+//    directory = /usr/share/www/
+//    path      = /static/
+//
+//    Request for '/static/image.jpg' would read file '/usr/share/www/image.jpg'
+//
+// Will panic if any handle is registered under path. Attempting to register a new handle under path after calling
+// Static will panic.
+//
+// Caching will be enabled by default for all files served by this router. The mtime of the file will be used for the
+// Last-Modified date.
+//
+// By default, the server will use the file extension (if any) to determine the MIME type for the response.
 func (h HTTP) Static(path string, directory string) {
 	log.PDebug("Serving files from directory", map[string]interface{}{
 		"directory": directory,
 		"path":      path,
 	})
-	h.server.router.ServeFiles(path, http.Dir(directory))
+	h.server.router.ServeFiles(directory, path)
 }
 
 // GET register a new HTTP GET request handle
@@ -67,16 +81,16 @@ func (h HTTP) registerHTTPEndpoint(method string, path string, handle HTTPHandle
 	h.server.router.Handle(method, path, h.httpPreHandle(handle, options))
 }
 
-func (h HTTP) httpPreHandle(endpointHandle HTTPHandle, options HandleOptions) httprouter.Handle {
-	return func(w http.ResponseWriter, request *http.Request, ps httprouter.Params) {
-		if h.server.isRateLimited(w, request) {
+func (h HTTP) httpPreHandle(endpointHandle HTTPHandle, options HandleOptions) router.Handle {
+	return func(w http.ResponseWriter, request router.Request) {
+		if h.server.isRateLimited(w, request.HTTP) {
 			return
 		}
 
 		if options.MaxBodyLength > 0 {
 			// We don't need to worry about this not being a number. Go's own HTTP server
 			// won't respond to requests like these
-			length, _ := strconv.ParseUint(request.Header.Get("Content-Length"), 10, 64)
+			length, _ := strconv.ParseUint(request.HTTP.Header.Get("Content-Length"), 10, 64)
 
 			if length > options.MaxBodyLength {
 				log.PError("Rejecting HTTP request with oversized body", map[string]interface{}{
@@ -89,13 +103,13 @@ func (h HTTP) httpPreHandle(endpointHandle HTTPHandle, options HandleOptions) ht
 		}
 
 		if options.AuthenticateMethod != nil {
-			userData := options.AuthenticateMethod(request)
+			userData := options.AuthenticateMethod(request.HTTP)
 			if isUserdataNil(userData) {
 				if options.UnauthorizedMethod == nil {
 					log.PWarn("Rejected request to authenticated HTTP endpoint", map[string]interface{}{
-						"url":         request.URL,
-						"method":      request.Method,
-						"remote_addr": getRealIP(request),
+						"url":         request.HTTP.URL,
+						"method":      request.HTTP.Method,
+						"remote_addr": getRealIP(request.HTTP),
 					})
 					w.Header().Set("Content-Type", "text/html")
 					w.WriteHeader(http.StatusUnauthorized)
@@ -103,23 +117,23 @@ func (h HTTP) httpPreHandle(endpointHandle HTTPHandle, options HandleOptions) ht
 					return
 				}
 
-				options.UnauthorizedMethod(w, request)
+				options.UnauthorizedMethod(w, request.HTTP)
 			} else {
-				h.httpPostHandle(endpointHandle, userData)(w, request, ps)
+				h.httpPostHandle(endpointHandle, userData)(w, request)
 			}
 			return
 		}
-		h.httpPostHandle(endpointHandle, nil)(w, request, ps)
+		h.httpPostHandle(endpointHandle, nil)(w, request)
 	}
 }
 
-func (h HTTP) httpPostHandle(endpointHandle HTTPHandle, userData interface{}) httprouter.Handle {
-	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (h HTTP) httpPostHandle(endpointHandle HTTPHandle, userData interface{}) router.Handle {
+	return func(w http.ResponseWriter, r router.Request) {
 		request := Request{
-			HTTP:     r,
-			Params:   ps,
-			UserData: userData,
-			writer:   w,
+			HTTP:       r.HTTP,
+			Parameters: r.Parameters,
+			UserData:   userData,
+			writer:     w,
 		}
 		start := time.Now()
 		response := endpointHandle(request, Writer{w})
@@ -140,9 +154,9 @@ func (h HTTP) httpPostHandle(endpointHandle HTTPHandle, userData interface{}) ht
 			code = response.Status
 		}
 		log.PWrite(h.server.RequestLogLevel, "HTTP Request", map[string]interface{}{
-			"remote_addr": getRealIP(r),
-			"method":      r.Method,
-			"url":         r.URL,
+			"remote_addr": getRealIP(r.HTTP),
+			"method":      r.HTTP.Method,
+			"url":         r.HTTP.URL,
 			"elapsed":     elapsed.String(),
 			"status":      code,
 		})
@@ -153,8 +167,8 @@ func (h HTTP) httpPostHandle(endpointHandle HTTPHandle, userData interface{}) ht
 			response.Reader.Close()
 			if err != nil {
 				log.PError("Error writing response", map[string]interface{}{
-					"method": r.Method,
-					"url":    r.URL,
+					"method": r.HTTP.Method,
+					"url":    r.HTTP.URL,
 					"error":  err.Error(),
 				})
 				return

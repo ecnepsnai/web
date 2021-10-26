@@ -67,7 +67,7 @@ func ExampleHTTP_POST() {
 	server := web.New("127.0.0.1:8080")
 
 	handle := func(request web.Request, writer web.Writer) web.Response {
-		username := request.Params.ByName("username")
+		username := request.Parameters["username"]
 
 		f, err := os.Open("/foo/bar")
 		if err != nil {
@@ -91,7 +91,7 @@ func ExampleHTTP_PUT() {
 	server := web.New("127.0.0.1:8080")
 
 	handle := func(request web.Request, writer web.Writer) web.Response {
-		username := request.Params.ByName("username")
+		username := request.Parameters["username"]
 
 		f, err := os.Open("/foo/bar")
 		if err != nil {
@@ -115,7 +115,7 @@ func ExampleHTTP_PATCH() {
 	server := web.New("127.0.0.1:8080")
 
 	handle := func(request web.Request, writer web.Writer) web.Response {
-		username := request.Params.ByName("username")
+		username := request.Parameters["username"]
 
 		f, err := os.Open("/foo/bar")
 		if err != nil {
@@ -139,7 +139,7 @@ func ExampleHTTP_DELETE() {
 	server := web.New("127.0.0.1:8080")
 
 	handle := func(request web.Request, writer web.Writer) web.Response {
-		username := request.Params.ByName("username")
+		username := request.Parameters["username"]
 		return web.Response{
 			Headers: map[string]string{
 				"X-Username": username,

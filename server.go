@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/ecnepsnai/logtic"
-	"github.com/julienschmidt/httprouter"
+	"github.com/ecnepsnai/web/router"
 	"golang.org/x/time/rate"
 )
 
@@ -37,7 +37,7 @@ type Server struct {
 	MaxRequestsPerSecond int
 	// The level to use when logging out HTTP requests. Maps to github.com/ecnepsnai/logtic levels. Defaults to Debug.
 	RequestLogLevel int
-	router          *httprouter.Router
+	router          *router.Server
 	listener        net.Listener
 	shuttingDown    bool
 	limits          map[string]*rate.Limiter
@@ -47,7 +47,7 @@ type Server struct {
 // New create a new server object that will bind to the provided address. Does not start the service automatically.
 // Bind address must be in the format of "address:port", such as "localhost:8080" or "0.0.0.0:8080".
 func New(bindAddress string) *Server {
-	httpRouter := httprouter.New()
+	httpRouter := router.New()
 	server := Server{
 		BindAddress:     bindAddress,
 		RequestLogLevel: logtic.LevelDebug,
@@ -55,12 +55,8 @@ func New(bindAddress string) *Server {
 		limits:          map[string]*rate.Limiter{},
 		limitLock:       &sync.Mutex{},
 	}
-	httpRouter.NotFound = notFoundHandler{
-		server: &server,
-	}
-	httpRouter.MethodNotAllowed = methodNotAllowedHandler{
-		server: &server,
-	}
+	httpRouter.SetNotFoundHandle(server.notFoundHandle)
+	httpRouter.SetMethodNotAllowedHandle(server.methodNotAllowedHandle)
 	server.API = API{
 		server: &server,
 	}
@@ -88,7 +84,7 @@ func (s *Server) Start() error {
 		"listen_address": s.BindAddress,
 		"listen_port":    s.ListenPort,
 	})
-	if err := http.Serve(listener, s.router); err != nil {
+	if err := s.router.Serve(listener); err != nil {
 		if s.shuttingDown {
 			log.Info("HTTP server stopped")
 			return nil
@@ -106,40 +102,32 @@ func (s *Server) Stop() {
 	s.listener.Close()
 }
 
-type notFoundHandler struct {
-	server *Server
-}
-
-func (n notFoundHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	log.PWrite(n.server.RequestLogLevel, "HTTP Request", map[string]interface{}{
+func (s *Server) notFoundHandle(w http.ResponseWriter, r *http.Request) {
+	log.PWrite(s.RequestLogLevel, "HTTP Request", map[string]interface{}{
 		"remote_addr": getRealIP(r),
 		"method":      r.Method,
 		"url":         r.URL,
 		"elapsed":     time.Duration(0).String(),
 		"status":      404,
 	})
-	if n.server.NotFoundHandler != nil {
-		n.server.NotFoundHandler(w, r)
+	if s.NotFoundHandler != nil {
+		s.NotFoundHandler(w, r)
 		return
 	}
 	w.WriteHeader(404)
 	w.Write([]byte("Not found"))
 }
 
-type methodNotAllowedHandler struct {
-	server *Server
-}
-
-func (n methodNotAllowedHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	log.PWrite(n.server.RequestLogLevel, "HTTP Request", map[string]interface{}{
+func (s *Server) methodNotAllowedHandle(w http.ResponseWriter, r *http.Request) {
+	log.PWrite(s.RequestLogLevel, "HTTP Request", map[string]interface{}{
 		"remote_addr": getRealIP(r),
 		"method":      r.Method,
 		"url":         r.URL,
 		"elapsed":     time.Duration(0).String(),
 		"status":      405,
 	})
-	if n.server.MethodNotAllowedHandler != nil {
-		n.server.MethodNotAllowedHandler(w, r)
+	if s.MethodNotAllowedHandler != nil {
+		s.MethodNotAllowedHandler(w, r)
 		return
 	}
 	w.WriteHeader(405)

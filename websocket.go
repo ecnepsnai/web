@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/ecnepsnai/web/router"
 	"github.com/gorilla/websocket"
-	"github.com/julienschmidt/httprouter"
 )
 
 // Socket register a new websocket server at the given path
@@ -32,24 +32,24 @@ func socketPanicRecover() {
 	}
 }
 
-func (s *Server) socketHandler(endpointHandle SocketHandle, options HandleOptions) httprouter.Handle {
-	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (s *Server) socketHandler(endpointHandle SocketHandle, options HandleOptions) router.Handle {
+	return func(w http.ResponseWriter, r router.Request) {
 		defer socketPanicRecover()
 
 		var userData interface{}
 
-		if s.isRateLimited(w, r) {
+		if s.isRateLimited(w, r.HTTP) {
 			return
 		}
 
 		if options.AuthenticateMethod != nil {
-			userData = options.AuthenticateMethod(r)
+			userData = options.AuthenticateMethod(r.HTTP)
 			if isUserdataNil(userData) {
 				if options.UnauthorizedMethod == nil {
 					log.PWarn("Rejected request to authenticated websocket endpoint", map[string]interface{}{
-						"url":         r.URL,
-						"method":      r.Method,
-						"remote_addr": getRealIP(r),
+						"url":         r.HTTP.URL,
+						"method":      r.HTTP.Method,
+						"remote_addr": getRealIP(r.HTTP),
 					})
 					w.Header().Set("Content-Type", "application/json")
 					w.WriteHeader(http.StatusUnauthorized)
@@ -57,29 +57,29 @@ func (s *Server) socketHandler(endpointHandle SocketHandle, options HandleOption
 					return
 				}
 
-				options.UnauthorizedMethod(w, r)
+				options.UnauthorizedMethod(w, r.HTTP)
 				return
 			}
 		}
 
-		conn, err := upgrader.Upgrade(w, r, nil)
+		conn, err := upgrader.Upgrade(w, r.HTTP, nil)
 		if err != nil {
 			log.PError("Error upgrading client for websocket connection", map[string]interface{}{
 				"error":       err.Error(),
-				"remote_addr": getRealIP(r),
+				"remote_addr": getRealIP(r.HTTP),
 			})
 			return
 		}
 		endpointHandle(Request{
-			Params:   ps,
-			UserData: userData,
+			Parameters: r.Parameters,
+			UserData:   userData,
 		}, WSConn{
 			c: conn,
 		})
 		log.PWrite(s.RequestLogLevel, "Websocket request", map[string]interface{}{
-			"method":      r.Method,
-			"url":         r.RequestURI,
-			"remote_addr": getRealIP(r),
+			"method":      r.HTTP.Method,
+			"url":         r.HTTP.RequestURI,
+			"remote_addr": getRealIP(r.HTTP),
 		})
 	}
 }

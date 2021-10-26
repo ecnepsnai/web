@@ -5,6 +5,10 @@
 [![Releases](https://img.shields.io/github/release/ecnepsnai/web/all.svg?style=flat-square)](https://github.com/ecnepsnai/web/releases)
 [![LICENSE](https://img.shields.io/github/license/ecnepsnai/web.svg?style=flat-square)](https://github.com/ecnepsnai/web/blob/master/LICENSE)
 
+The web project provides two packages, web and router.
+
+## Web
+
 Package web is a HTTP server for Golang applications.
 
 It is suitable for both front-end and back-end use, being able to deliver static content, act as a REST-ful JSON server,
@@ -12,6 +16,16 @@ and as a WebSocket server.
 
 It includes simple controls to allow for user authentication with contextual data being available in every request, and
 provides simple per-user rate-limiting.
+
+## Router
+
+Package router provides a simple & efficient parametrized HTTP router.
+
+A HTTP router allows you to map a HTTP request method and path to a specific function. A parameterized HTTP router
+allows you to designate specific portions of the request path as a parameter, which can later be fetched during the
+request itself.
+
+This package allows you modify the routing table ad-hoc, even while the server is running.
 
 # Documentation & Examples
 

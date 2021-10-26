@@ -14,7 +14,7 @@ func ExampleRequest_DecodeJSON() {
 	}
 
 	handle := func(request web.Request) (interface{}, *web.Error) {
-		username := request.Params.ByName("username")
+		username := request.Parameters["username"]
 		params := userRequestType{}
 		if err := request.DecodeJSON(&params); err != nil {
 			return nil, err

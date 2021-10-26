@@ -27,7 +27,7 @@ func TestMock(t *testing.T) {
 			t.Error("Invalid user data")
 		}
 
-		if request.Params.ByName("foo") != "bar" {
+		if request.Parameters["foo"] != "bar" {
 			t.Error("Invalid request path parameters")
 		}
 

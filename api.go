@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/julienschmidt/httprouter"
+	"github.com/ecnepsnai/web/router"
 )
 
 // API describes a JSON API server. API handles return data or an error, and all responses are wrapped in a common
@@ -58,16 +58,16 @@ func (a API) registerAPIEndpoint(method string, path string, handle APIHandle, o
 	a.server.router.Handle(method, path, a.apiPreHandle(handle, options))
 }
 
-func (a API) apiPreHandle(endpointHandle APIHandle, options HandleOptions) httprouter.Handle {
-	return func(w http.ResponseWriter, request *http.Request, ps httprouter.Params) {
-		if a.server.isRateLimited(w, request) {
+func (a API) apiPreHandle(endpointHandle APIHandle, options HandleOptions) router.Handle {
+	return func(w http.ResponseWriter, request router.Request) {
+		if a.server.isRateLimited(w, request.HTTP) {
 			return
 		}
 
 		if options.MaxBodyLength > 0 {
 			// We don't need to worry about this not being a number. Go's own HTTP server
 			// won't respond to requests like these
-			length, _ := strconv.ParseUint(request.Header.Get("Content-Length"), 10, 64)
+			length, _ := strconv.ParseUint(request.HTTP.Header.Get("Content-Length"), 10, 64)
 
 			if length > options.MaxBodyLength {
 				log.PError("Rejecting API request with oversized body", map[string]interface{}{
@@ -80,13 +80,13 @@ func (a API) apiPreHandle(endpointHandle APIHandle, options HandleOptions) httpr
 		}
 
 		if options.AuthenticateMethod != nil {
-			userData := options.AuthenticateMethod(request)
+			userData := options.AuthenticateMethod(request.HTTP)
 			if isUserdataNil(userData) {
 				if options.UnauthorizedMethod == nil {
 					log.PWarn("Rejected request to authenticated API endpoint", map[string]interface{}{
-						"url":         request.URL,
-						"method":      request.Method,
-						"remote_addr": getRealIP(request),
+						"url":         request.HTTP.URL,
+						"method":      request.HTTP.Method,
+						"remote_addr": getRealIP(request.HTTP),
 					})
 					w.Header().Set("Content-Type", "application/json")
 					w.WriteHeader(http.StatusUnauthorized)
@@ -94,26 +94,26 @@ func (a API) apiPreHandle(endpointHandle APIHandle, options HandleOptions) httpr
 					return
 				}
 
-				options.UnauthorizedMethod(w, request)
+				options.UnauthorizedMethod(w, request.HTTP)
 			} else {
-				a.apiPostHandle(endpointHandle, userData)(w, request, ps)
+				a.apiPostHandle(endpointHandle, userData)(w, request)
 			}
 			return
 		}
-		a.apiPostHandle(endpointHandle, nil)(w, request, ps)
+		a.apiPostHandle(endpointHandle, nil)(w, request)
 	}
 }
 
-func (a API) apiPostHandle(endpointHandle APIHandle, userData interface{}) httprouter.Handle {
-	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (a API) apiPostHandle(endpointHandle APIHandle, userData interface{}) router.Handle {
+	return func(w http.ResponseWriter, r router.Request) {
 		w.Header().Set("Content-Type", "application/json")
 
 		response := JSONResponse{}
 		request := Request{
-			HTTP:     r,
-			Params:   ps,
-			UserData: userData,
-			writer:   w,
+			HTTP:       r.HTTP,
+			Parameters: r.Parameters,
+			UserData:   userData,
+			writer:     w,
 		}
 
 		start := time.Now()
@@ -128,16 +128,16 @@ func (a API) apiPostHandle(endpointHandle APIHandle, userData interface{}) httpr
 			response.Data = data
 		}
 		log.PWrite(a.server.RequestLogLevel, "API Request", map[string]interface{}{
-			"remote_addr": getRealIP(r),
-			"method":      r.Method,
-			"url":         r.URL,
+			"remote_addr": getRealIP(r.HTTP),
+			"method":      r.HTTP.Method,
+			"url":         r.HTTP.URL,
 			"elapsed":     elapsed.String(),
 			"status":      response.Code,
 		})
 		if err := json.NewEncoder(w).Encode(response); err != nil {
 			log.PError("Error writing response", map[string]interface{}{
-				"method": r.Method,
-				"url":    r.URL,
+				"method": r.HTTP.Method,
+				"url":    r.HTTP.URL,
 				"error":  err.Error(),
 			})
 		}

@@ -6,7 +6,7 @@ func ExampleValidationError() {
 	server := web.New("127.0.0.1:8080")
 
 	handle := func(request web.Request) (interface{}, *web.Error) {
-		username := request.Params.ByName("username")
+		username := request.Parameters["username"]
 
 		return nil, web.ValidationError("No user with username %s", username)
 	}

@@ -4,16 +4,14 @@ import (
 	"encoding/json"
 	"net"
 	"net/http"
-
-	"github.com/julienschmidt/httprouter"
 )
 
 // Request describes an API request
 type Request struct {
-	HTTP     *http.Request
-	Params   httprouter.Params
-	UserData interface{}
-	writer   http.ResponseWriter
+	HTTP       *http.Request
+	Parameters map[string]string
+	UserData   interface{}
+	writer     http.ResponseWriter
 }
 
 // AddCookie add a cookie to the response

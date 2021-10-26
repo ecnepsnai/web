@@ -433,6 +433,11 @@ func TestAPILogLevel(t *testing.T) {
 	logtic.Log.Reset()
 	logFilePath := path.Join(t.TempDir(), "web.log")
 	logtic.Log.FilePath = logFilePath
+
+	stdout := &bytes.Buffer{}
+	logtic.Log.Stdout = stdout
+	logtic.Log.Stderr = stdout
+
 	logtic.Log.Level = logtic.LevelDebug
 	logtic.Log.Open()
 	defer logtic.Log.Close()
@@ -471,6 +476,10 @@ func TestAPILogLevel(t *testing.T) {
 	}
 	if !infoPattern.Match(logFileData) {
 		t.Errorf("Did not find expected log line for API request\n----\n%s\n----", logFileData)
+	}
+
+	if stdout.Len() == 0 {
+		t.Errorf("Did not find expected log line in stdout for API request")
 	}
 
 	logtic.Log.Reset()
