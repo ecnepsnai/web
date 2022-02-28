@@ -439,6 +439,10 @@ func (s *Server) RemoveHandle(method, path string) {
 //
 // The server will also instruct clients to cache files served for up-to 1 day. You can control this with the
 // CacheMaxAge variable.
+//
+// When a directory is requested, the router will look for an index file with the name from the IndexFileName variable.
+// If no file is found, a directory listing will automatically be generated. You can control this with the
+// GenerateDirectoryListing variable.
 func (s *Server) ServeFiles(localRoot string, urlRoot string) {
 	var handle Handle = func(rw http.ResponseWriter, r Request) {
 		s.impl.serveStatic(localRoot, r.Parameters["path"], rw, r.HTTP)

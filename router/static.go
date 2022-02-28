@@ -7,12 +7,20 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"strings"
 	"time"
 )
 
 // CacheMaxAge the amount of time browsers may consider static content to be fresh.
 // Set this to 0 to not include a "Cache-Control" header for static requests.
 var CacheMaxAge time.Duration = 24 * time.Hour
+
+// IndexFileName is the name used when searching a directory for an index
+var IndexFileName = "index.html"
+
+// GenerateDirectoryListing if the router should generate a directory listing for static directories that do not have
+// an index file (see also IndexFileName)
+var GenerateDirectoryListing = true
 
 func (s *impl) serveStatic(dir, url string, w http.ResponseWriter, req *http.Request) {
 	if req.Method != "GET" && req.Method != "HEAD" {
@@ -21,7 +29,27 @@ func (s *impl) serveStatic(dir, url string, w http.ResponseWriter, req *http.Req
 	}
 
 	requestPath := stripPath(url)
+	shouldRenderDirectoryListing := false
+	if requestPath == "" || strings.HasSuffix(requestPath, "/") {
+		// First check if an index file is found
+		if fileExists(path.Join(dir, requestPath+IndexFileName)) {
+			requestPath += IndexFileName
+		} else if fileExists(path.Join(dir, requestPath)) {
+			// If an index file is not found, check if the directory exists
+			shouldRenderDirectoryListing = true
+		}
+	}
 	filePath := path.Join(dir, requestPath)
+
+	if shouldRenderDirectoryListing {
+		if !GenerateDirectoryListing {
+			s.NotFoundHandle(w, req)
+			return
+		}
+
+		s.makeDirectoryIndex(filePath, requestPath, w, req)
+		return
+	}
 
 	s.log.PDebug("Serving static request", map[string]interface{}{
 		"request_path": requestPath,
@@ -92,4 +120,9 @@ func stripPath(inS string) (outS string) {
 	out := bytes.ReplaceAll(in, []byte{0x2e, 0x2e, 0x2f}, []byte{})
 	outS = string(out)
 	return
+}
+
+func fileExists(filePath string) bool {
+	_, err := os.Stat(filePath)
+	return err == nil
 }
