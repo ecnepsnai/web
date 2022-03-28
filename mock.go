@@ -20,7 +20,8 @@ func MockRequest(userData interface{}, params map[string]string, body interface{
 
 	r := Request{
 		HTTP: &http.Request{
-			Body: io.NopCloser(bytes.NewReader(data)),
+			RemoteAddr: "[::1]:65535",
+			Body:       io.NopCloser(bytes.NewReader(data)),
 			Header: http.Header{
 				"User-Agent": []string{"go test"},
 			},

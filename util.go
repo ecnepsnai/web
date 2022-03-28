@@ -1,5 +1,24 @@
 package web
 
+import (
+	"net"
+	"net/http"
+)
+
+func getRealIP(r *http.Request) net.IP {
+	if ip := net.ParseIP(r.Header.Get("X-Real-IP")); ip != nil {
+		return ip
+	}
+	if ip := net.ParseIP(r.Header.Get("X-Forwarded-For")); ip != nil {
+		return ip
+	}
+	if ip := net.ParseIP(getIPFromRemoteAddr(r.RemoteAddr)); ip != nil {
+		return ip
+	}
+
+	return net.IPv4(0, 0, 0, 0)
+}
+
 // getIPFromRemoteAddr strip the port from a socket address (address:port, return address). Also unwraps IPv6 addresses.
 func getIPFromRemoteAddr(remoteAddr string) string {
 	addr := stripPortFromSocketAddr(remoteAddr)
