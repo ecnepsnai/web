@@ -11,8 +11,9 @@ type JSONResponse struct {
 
 // HTTPResponse describes a HTTP response
 type HTTPResponse struct {
-	Reader      io.ReadCloser
-	Status      int
-	Headers     map[string]string
-	ContentType string
+	Reader        io.ReadCloser
+	Status        int
+	Headers       map[string]string
+	ContentType   string
+	ContentLength uint64
 }

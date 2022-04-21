@@ -47,6 +47,8 @@ type ServerOptions struct {
 	MaxRequestsPerSecond int
 	// The level to use when logging out HTTP requests. Maps to github.com/ecnepsnai/logtic levels. Defaults to Debug.
 	RequestLogLevel int
+	// If true then the server will not try to reply with chunked data for a HTTP range request
+	IgnoreHTTPRangeRequests bool
 }
 
 // New create a new server object that will bind to the provided address. Does not start the service automatically.

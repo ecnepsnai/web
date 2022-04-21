@@ -19,13 +19,16 @@ func ExampleHTTP_GET() {
 
 	handle := func(request web.Request, writer web.Writer) web.HTTPResponse {
 		f, err := os.Open("/foo/bar")
-		if err != nil {
+		info, ierr := f.Stat()
+		if err != nil || ierr != nil {
 			return web.HTTPResponse{
 				Status: 500,
 			}
 		}
 		return web.HTTPResponse{
-			Reader: f,
+			Reader:        f, // The file will be closed automatically
+			ContentType:   "text/plain",
+			ContentLength: uint64(info.Size()),
 		}
 	}
 	server.HTTP.GET("/users/user", handle, web.HandleOptions{})

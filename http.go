@@ -1,6 +1,7 @@
 package web
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -10,12 +11,15 @@ import (
 )
 
 // HTTP describes a HTTP server. HTTP handles are expected to return a reader and specify the content
-// type themselves.
+// type and length themselves.
+//
+// The HTTP server supports HTTP range requests, should the client request it and the application provide a
+// supported Reader (io.ReadSeekCloser).
 type HTTP struct {
 	server *Server
 }
 
-// Static registers a handler for all requests under path to serve any files matching the directory.
+// Static registers a GET and HEAD handle for all requests under path to serve any files matching the directory.
 //
 // For example:
 //    directory = /usr/share/www/
@@ -147,10 +151,47 @@ func (h HTTP) httpPostHandle(endpointHandle HTTPHandle, userData interface{}) ro
 		response := endpointHandle(request, Writer{w})
 		elapsed := time.Since(start)
 
+		if response.Reader != nil {
+			defer response.Reader.Close()
+		}
+
+		// Return a HTTP range response only if:
+		// 1. A range was actually requested by the client
+		// 2. The reader implemented Seek
+		// 3. The response was either default or 200
+		ranges, _ := router.ParseRangeHeader(r.HTTP.Header.Get("range"))
+		_, canSeek := response.Reader.(io.ReadSeekCloser)
+		if len(ranges) > 0 && (response.Status == 0 || response.Status == 200) && !h.server.Options.IgnoreHTTPRangeRequests && canSeek {
+			router.ServeHTTPRange(router.ServeHTTPRangeOptions{
+				Headers:     response.Headers,
+				Ranges:      ranges,
+				Reader:      response.Reader.(io.ReadSeekCloser),
+				TotalLength: response.ContentLength,
+				MIMEType:    response.ContentType,
+				Writer:      w,
+			})
+			log.PWrite(h.server.Options.RequestLogLevel, "HTTP Request", map[string]interface{}{
+				"remote_addr": getRealIP(r.HTTP),
+				"method":      r.HTTP.Method,
+				"url":         r.HTTP.URL,
+				"elapsed":     elapsed.String(),
+				"status":      response.Status,
+				"range":       true,
+			})
+			return
+		}
+		if canSeek && !h.server.Options.IgnoreHTTPRangeRequests {
+			w.Header().Set("Accept-Ranges", "bytes")
+		}
+
 		if len(response.ContentType) == 0 {
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		} else {
 			w.Header().Set("Content-Type", response.ContentType)
+		}
+
+		if response.ContentLength > 0 {
+			w.Header().Set("Content-Length", fmt.Sprintf("%d", response.ContentLength))
 		}
 
 		for k, v := range response.Headers {
@@ -172,7 +213,6 @@ func (h HTTP) httpPostHandle(endpointHandle HTTPHandle, userData interface{}) ro
 
 		if r.HTTP.Method != "HEAD" && response.Reader != nil {
 			_, err := io.CopyBuffer(w, response.Reader, nil)
-			response.Reader.Close()
 			if err != nil {
 				log.PError("Error writing response", map[string]interface{}{
 					"method": r.HTTP.Method,

@@ -1,6 +1,12 @@
 package router_test
 
 import (
+	"bytes"
+	"encoding/hex"
+	"io"
+	"math/rand"
+	"mime"
+	"mime/multipart"
 	"net/http"
 	"os"
 	"path"
@@ -358,5 +364,171 @@ func TestRouterStaticCacheControlHeader(t *testing.T) {
 	cacheControl = resp.Header.Get("Cache-Control")
 	if cacheControl != "" {
 		t.Errorf("Unexpected cache control for URL '%s'.", url)
+	}
+}
+
+// Test HTTP range request for a static file using absolute values
+func TestRouterStaticAbsoluteByteRange(t *testing.T) {
+	t.Parallel()
+
+	rawData := make([]byte, 250)
+	randomData := make([]byte, 500)
+	rand.Read(rawData)
+	hex.Encode(randomData, rawData)
+	if len(randomData) != 500 {
+		panic("Not enough random data?")
+	}
+
+	dir := t.TempDir()
+	os.WriteFile(path.Join(dir, "data.txt"), randomData, os.ModePerm)
+
+	listenAddress := getListenAddress()
+
+	server := router.New()
+	server.ServeFiles(dir, "/")
+	go func() {
+		server.ListenAndServe(listenAddress)
+	}()
+	time.Sleep(5 * time.Millisecond)
+
+	url := "http://" + listenAddress + "/data.txt"
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		panic(err)
+	}
+	req.Header.Set("range", "bytes=0-99,200-300,400-")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		panic(err)
+	}
+	if resp.StatusCode != 206 {
+		t.Fatalf("Unexpected status code for URL '%s'. Expected %d got %d", url, 206, resp.StatusCode)
+	}
+
+	_, params, err := mime.ParseMediaType(resp.Header.Get("Content-Type"))
+	if err != nil {
+		panic(err)
+	}
+	r := multipart.NewReader(resp.Body, params["boundary"])
+	i := 0
+
+	ranges := []string{
+		"bytes 0-99/500",
+		"bytes 200-300/500",
+		"bytes 400-500/500",
+	}
+
+	data := [][]byte{
+		randomData[0:99],
+		randomData[200:300],
+		randomData[400:],
+	}
+
+	for {
+		part, err := r.NextPart()
+		if err == io.EOF {
+			break
+		}
+		if i > 2 {
+			t.Fatalf("Unpexted number of unit parts in response. Expected 3 but got at least %d", i+1)
+		}
+		contentType := part.Header.Get("Content-Type")
+		contentRange := part.Header.Get("Content-Range")
+		if contentType != "text/plain" {
+			t.Errorf("Unexpected content type in unit part %d. Expected %s got %s", i+1, "text/plain", contentType)
+		}
+		if contentRange != ranges[i] {
+			t.Errorf("Unexpected content range in unit part %d. Expected %s got %s", i+1, ranges[i], contentRange)
+		}
+		partData, err := io.ReadAll(part)
+		if err != nil {
+			panic(err)
+		}
+		if !bytes.Equal(partData, data[i]) {
+			t.Errorf("Unexpected data in unit part %d.\nExpected:\n\t%s\nGot:\n\t%s", i+1, data[i], partData)
+		}
+		i++
+	}
+}
+
+// Test HTTP range request for a static file using relative values
+func TestRouterStaticRelativeByteRange(t *testing.T) {
+	t.Parallel()
+
+	rawData := make([]byte, 100)
+	randomData := make([]byte, 200)
+	rand.Read(rawData)
+	hex.Encode(randomData, rawData)
+	if len(randomData) != 200 {
+		panic("Not enough random data?")
+	}
+
+	dir := t.TempDir()
+	os.WriteFile(path.Join(dir, "data.txt"), randomData, os.ModePerm)
+
+	listenAddress := getListenAddress()
+
+	server := router.New()
+	server.ServeFiles(dir, "/")
+	go func() {
+		server.ListenAndServe(listenAddress)
+	}()
+	time.Sleep(5 * time.Millisecond)
+
+	url := "http://" + listenAddress + "/data.txt"
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		panic(err)
+	}
+	req.Header.Set("range", "bytes=-100")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		panic(err)
+	}
+	if resp.StatusCode != 206 {
+		t.Fatalf("Unexpected status code for URL '%s'. Expected %d got %d", url, 206, resp.StatusCode)
+	}
+
+	_, params, err := mime.ParseMediaType(resp.Header.Get("Content-Type"))
+	if err != nil {
+		panic(err)
+	}
+	r := multipart.NewReader(resp.Body, params["boundary"])
+	i := 0
+
+	ranges := []string{
+		"bytes 100-200/200",
+	}
+
+	data := [][]byte{
+		randomData[100:],
+	}
+
+	for {
+		part, err := r.NextPart()
+		if err == io.EOF {
+			break
+		}
+		if i > 1 {
+			t.Fatalf("Unpexted number of unit parts in response. Expected 1 but got at least %d", i+1)
+		}
+		contentType := part.Header.Get("Content-Type")
+		contentRange := part.Header.Get("Content-Range")
+		if contentType != "text/plain" {
+			t.Errorf("Unexpected content type in unit part %d. Expected %s got %s", i+1, "text/plain", contentType)
+		}
+		if contentRange != ranges[i] {
+			t.Errorf("Unexpected content range in unit part %d. Expected %s got %s", i+1, ranges[i], contentRange)
+		}
+		partData, err := io.ReadAll(part)
+		if err != nil {
+			panic(err)
+		}
+		if !bytes.Equal(partData, data[i]) {
+			t.Errorf("Unexpected data in unit part %d.\nExpected:\n\t%s\nGot:\n\t%s", i+1, data[i], partData)
+		}
+		i++
 	}
 }
