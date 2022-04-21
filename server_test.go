@@ -158,8 +158,8 @@ func TestMethodNotAllowed(t *testing.T) {
 	}
 
 	path := randomString(12)
-	server.HTTP.DELETE("/"+path, web.HTTPHandle(func(request web.Request, writer web.Writer) web.Response {
-		return web.Response{}
+	server.HTTP.DELETE("/"+path, web.HTTPHandle(func(request web.Request, writer web.Writer) web.HTTPResponse {
+		return web.HTTPResponse{}
 	}), web.HandleOptions{})
 
 	// HTML

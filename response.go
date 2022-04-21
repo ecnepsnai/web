@@ -9,8 +9,8 @@ type JSONResponse struct {
 	Data  interface{} `json:"data,omitempty"`
 }
 
-// Response describes a HTTP response
-type Response struct {
+// HTTPResponse describes a HTTP response
+type HTTPResponse struct {
 	Reader      io.ReadCloser
 	Status      int
 	Headers     map[string]string

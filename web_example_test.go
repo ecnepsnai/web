@@ -26,14 +26,14 @@ func Example_json() {
 func Example_file() {
 	server := web.New("127.0.0.1:8080")
 
-	handle := func(request web.Request, writer web.Writer) web.Response {
+	handle := func(request web.Request, writer web.Writer) web.HTTPResponse {
 		f, err := os.Open("/foo/bar")
 		if err != nil {
-			return web.Response{
+			return web.HTTPResponse{
 				Status: 500,
 			}
 		}
-		return web.Response{
+		return web.HTTPResponse{
 			Reader: f,
 		}
 	}

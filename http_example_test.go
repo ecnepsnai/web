@@ -17,14 +17,14 @@ func ExampleHTTP_Static() {
 func ExampleHTTP_GET() {
 	server := web.New("127.0.0.1:8080")
 
-	handle := func(request web.Request, writer web.Writer) web.Response {
+	handle := func(request web.Request, writer web.Writer) web.HTTPResponse {
 		f, err := os.Open("/foo/bar")
 		if err != nil {
-			return web.Response{
+			return web.HTTPResponse{
 				Status: 500,
 			}
 		}
-		return web.Response{
+		return web.HTTPResponse{
 			Reader: f,
 		}
 	}
@@ -36,8 +36,8 @@ func ExampleHTTP_GET() {
 func ExampleHTTP_HEAD() {
 	server := web.New("127.0.0.1:8080")
 
-	handle := func(request web.Request, writer web.Writer) web.Response {
-		return web.Response{
+	handle := func(request web.Request, writer web.Writer) web.HTTPResponse {
+		return web.HTTPResponse{
 			Headers: map[string]string{
 				"X-Fancy-Header": "some value",
 			},
@@ -51,8 +51,8 @@ func ExampleHTTP_HEAD() {
 func ExampleHTTP_OPTIONS() {
 	server := web.New("127.0.0.1:8080")
 
-	handle := func(request web.Request, writer web.Writer) web.Response {
-		return web.Response{
+	handle := func(request web.Request, writer web.Writer) web.HTTPResponse {
+		return web.HTTPResponse{
 			Headers: map[string]string{
 				"X-Fancy-Header": "some value",
 			},
@@ -66,16 +66,16 @@ func ExampleHTTP_OPTIONS() {
 func ExampleHTTP_POST() {
 	server := web.New("127.0.0.1:8080")
 
-	handle := func(request web.Request, writer web.Writer) web.Response {
+	handle := func(request web.Request, writer web.Writer) web.HTTPResponse {
 		username := request.Parameters["username"]
 
 		f, err := os.Open("/foo/bar")
 		if err != nil {
-			return web.Response{
+			return web.HTTPResponse{
 				Status: 500,
 			}
 		}
-		return web.Response{
+		return web.HTTPResponse{
 			Headers: map[string]string{
 				"X-Username": username,
 			},
@@ -90,16 +90,16 @@ func ExampleHTTP_POST() {
 func ExampleHTTP_PUT() {
 	server := web.New("127.0.0.1:8080")
 
-	handle := func(request web.Request, writer web.Writer) web.Response {
+	handle := func(request web.Request, writer web.Writer) web.HTTPResponse {
 		username := request.Parameters["username"]
 
 		f, err := os.Open("/foo/bar")
 		if err != nil {
-			return web.Response{
+			return web.HTTPResponse{
 				Status: 500,
 			}
 		}
-		return web.Response{
+		return web.HTTPResponse{
 			Headers: map[string]string{
 				"X-Username": username,
 			},
@@ -114,16 +114,16 @@ func ExampleHTTP_PUT() {
 func ExampleHTTP_PATCH() {
 	server := web.New("127.0.0.1:8080")
 
-	handle := func(request web.Request, writer web.Writer) web.Response {
+	handle := func(request web.Request, writer web.Writer) web.HTTPResponse {
 		username := request.Parameters["username"]
 
 		f, err := os.Open("/foo/bar")
 		if err != nil {
-			return web.Response{
+			return web.HTTPResponse{
 				Status: 500,
 			}
 		}
-		return web.Response{
+		return web.HTTPResponse{
 			Headers: map[string]string{
 				"X-Username": username,
 			},
@@ -138,9 +138,9 @@ func ExampleHTTP_PATCH() {
 func ExampleHTTP_DELETE() {
 	server := web.New("127.0.0.1:8080")
 
-	handle := func(request web.Request, writer web.Writer) web.Response {
+	handle := func(request web.Request, writer web.Writer) web.HTTPResponse {
 		username := request.Parameters["username"]
-		return web.Response{
+		return web.HTTPResponse{
 			Headers: map[string]string{
 				"X-Username": username,
 			},

@@ -17,8 +17,8 @@ func TestHTTPAddRoutes(t *testing.T) {
 	t.Parallel()
 	server := newServer()
 
-	handle := func(request web.Request, writer web.Writer) web.Response {
-		return web.Response{}
+	handle := func(request web.Request, writer web.Writer) web.HTTPResponse {
+		return web.HTTPResponse{}
 	}
 	options := web.HandleOptions{}
 
@@ -36,8 +36,8 @@ func TestHTTPAuthenticated(t *testing.T) {
 	t.Parallel()
 	server := newServer()
 
-	handle := func(request web.Request, writer web.Writer) web.Response {
-		return web.Response{}
+	handle := func(request web.Request, writer web.Writer) web.HTTPResponse {
+		return web.HTTPResponse{}
 	}
 	authenticate := func(request *http.Request) interface{} {
 		return 1
@@ -70,8 +70,8 @@ func TestHTTPUnauthenticated(t *testing.T) {
 	t.Parallel()
 	server := newServer()
 
-	handle := func(request web.Request, writer web.Writer) web.Response {
-		return web.Response{}
+	handle := func(request web.Request, writer web.Writer) web.HTTPResponse {
+		return web.HTTPResponse{}
 	}
 	authenticate := func(request *http.Request) interface{} {
 		return nil
@@ -125,8 +125,8 @@ func TestHTTPMethodNotAllowed(t *testing.T) {
 	t.Parallel()
 	server := newServer()
 
-	handle := func(request web.Request, writer web.Writer) web.Response {
-		return web.Response{}
+	handle := func(request web.Request, writer web.Writer) web.HTTPResponse {
+		return web.HTTPResponse{}
 	}
 	authenticate := func(request *http.Request) interface{} {
 		return nil
@@ -159,8 +159,8 @@ func TestHTTPHandleError(t *testing.T) {
 	t.Parallel()
 	server := newServer()
 
-	handle := func(request web.Request, writer web.Writer) web.Response {
-		return web.Response{
+	handle := func(request web.Request, writer web.Writer) web.HTTPResponse {
+		return web.HTTPResponse{
 			Status: 403,
 		}
 	}
@@ -203,12 +203,12 @@ func TestHTTPResponse(t *testing.T) {
 		t.Fatalf("Error making temporary file: %s", err.Error())
 	}
 
-	handle := func(request web.Request, writer web.Writer) web.Response {
+	handle := func(request web.Request, writer web.Writer) web.HTTPResponse {
 		f, err := os.Open(path.Join(tmp, name))
 		if err != nil {
 			t.Fatalf("Error opening temporary file: %s", err.Error())
 		}
-		return web.Response{
+		return web.HTTPResponse{
 			Reader: f,
 		}
 	}
@@ -239,8 +239,8 @@ func TestHTTPContentType(t *testing.T) {
 	server := newServer()
 
 	contentType := "application/amazing"
-	handle := func(request web.Request, writer web.Writer) web.Response {
-		return web.Response{
+	handle := func(request web.Request, writer web.Writer) web.HTTPResponse {
+		return web.HTTPResponse{
 			ContentType: contentType,
 		}
 	}
@@ -271,8 +271,8 @@ func TestHTTPHeaders(t *testing.T) {
 
 	headerKey := randomString(5)
 	headerValue := randomString(5)
-	handle := func(request web.Request, writer web.Writer) web.Response {
-		return web.Response{
+	handle := func(request web.Request, writer web.Writer) web.HTTPResponse {
+		return web.HTTPResponse{
 			Headers: map[string]string{
 				headerKey: headerValue,
 			},
@@ -333,8 +333,8 @@ func TestHTTPUnauthorizedMethod(t *testing.T) {
 	t.Parallel()
 	server := newServer()
 
-	handle := func(request web.Request, writer web.Writer) web.Response {
-		return web.Response{}
+	handle := func(request web.Request, writer web.Writer) web.HTTPResponse {
+		return web.HTTPResponse{}
 	}
 	authenticate := func(request *http.Request) interface{} {
 		return nil
@@ -374,8 +374,8 @@ func TestHTTPLargeBody(t *testing.T) {
 	t.Parallel()
 	server := newServer()
 
-	handle := func(request web.Request, writer web.Writer) web.Response {
-		return web.Response{}
+	handle := func(request web.Request, writer web.Writer) web.HTTPResponse {
+		return web.HTTPResponse{}
 	}
 	options := web.HandleOptions{
 		MaxBodyLength: 10,
@@ -406,8 +406,8 @@ func TestHTTPRateLimit(t *testing.T) {
 	t.Parallel()
 	server := newServer()
 
-	handle := func(request web.Request, writer web.Writer) web.Response {
-		return web.Response{}
+	handle := func(request web.Request, writer web.Writer) web.HTTPResponse {
+		return web.HTTPResponse{}
 	}
 	options := web.HandleOptions{}
 

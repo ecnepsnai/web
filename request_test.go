@@ -14,11 +14,11 @@ func TestRequestRealIP(t *testing.T) {
 
 	var expectedIP string
 
-	handle := func(request web.Request, writer web.Writer) web.Response {
+	handle := func(request web.Request, writer web.Writer) web.HTTPResponse {
 		if request.ClientIPAddress().String() != expectedIP {
 			t.Errorf("Unexpected client IP address. Expected '%s' got '%s'", expectedIP, request.ClientIPAddress().String())
 		}
-		return web.Response{}
+		return web.HTTPResponse{}
 	}
 	options := web.HandleOptions{}
 
