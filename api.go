@@ -122,7 +122,7 @@ func (a API) apiPostHandle(endpointHandle APIHandle, userData interface{}) route
 		if err != nil {
 			response.Code = err.Code
 			w.WriteHeader(err.Code)
-			response.Error = *err
+			response.Error = err
 		} else {
 			response.Code = 200
 			response.Data = data
