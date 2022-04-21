@@ -48,6 +48,28 @@ func ExampleHTTP_HEAD() {
 	server.Start()
 }
 
+func ExampleHTTP_GETHEAD() {
+	server := web.New("127.0.0.1:8080")
+
+	handle := func(request web.Request, writer web.Writer) web.HTTPResponse {
+		f, err := os.Open("/foo/bar")
+		info, ierr := f.Stat()
+		if err != nil || ierr != nil {
+			return web.HTTPResponse{
+				Status: 500,
+			}
+		}
+		return web.HTTPResponse{
+			Reader:        f, // the file will not be read for HTTP HEAD requests, but it will be closed.
+			ContentType:   "text/plain",
+			ContentLength: uint64(info.Size()),
+		}
+	}
+	server.HTTP.GETHEAD("/users/user", handle, web.HandleOptions{})
+
+	server.Start()
+}
+
 func ExampleHTTP_OPTIONS() {
 	server := web.New("127.0.0.1:8080")
 

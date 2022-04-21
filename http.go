@@ -48,6 +48,14 @@ func (h HTTP) HEAD(path string, handle HTTPHandle, options HandleOptions) {
 	h.registerHTTPEndpoint("HEAD", path, handle, options)
 }
 
+// GETHEAD registers both a HTTP GET and HTTP HEAD request handle. Equal to calling HTTP.GET and HTTP.HEAD.
+//
+// Handle responses can always return a reader, it will automatically be ignored for HEAD requests.
+func (h HTTP) GETHEAD(path string, handle HTTPHandle, options HandleOptions) {
+	h.registerHTTPEndpoint("GET", path, handle, options)
+	h.registerHTTPEndpoint("HEAD", path, handle, options)
+}
+
 // OPTIONS register a new HTTP OPTIONS request handle
 func (h HTTP) OPTIONS(path string, handle HTTPHandle, options HandleOptions) {
 	h.registerHTTPEndpoint("OPTIONS", path, handle, options)
@@ -162,7 +170,7 @@ func (h HTTP) httpPostHandle(endpointHandle HTTPHandle, userData interface{}) ro
 		})
 		w.WriteHeader(code)
 
-		if response.Reader != nil {
+		if r.HTTP.Method != "HEAD" && response.Reader != nil {
 			_, err := io.CopyBuffer(w, response.Reader, nil)
 			response.Reader.Close()
 			if err != nil {

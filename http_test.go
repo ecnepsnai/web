@@ -22,14 +22,14 @@ func TestHTTPAddRoutes(t *testing.T) {
 	}
 	options := web.HandleOptions{}
 
-	path := randomString(5)
-	server.HTTP.GET("/"+path, handle, options)
-	server.HTTP.HEAD("/"+path, handle, options)
-	server.HTTP.OPTIONS("/"+path, handle, options)
-	server.HTTP.POST("/"+path, handle, options)
-	server.HTTP.PUT("/"+path, handle, options)
-	server.HTTP.PATCH("/"+path, handle, options)
-	server.HTTP.DELETE("/"+path, handle, options)
+	server.HTTP.GET("/"+randomString(5), handle, options)
+	server.HTTP.HEAD("/"+randomString(5), handle, options)
+	server.HTTP.GETHEAD("/"+randomString(5), handle, options)
+	server.HTTP.OPTIONS("/"+randomString(5), handle, options)
+	server.HTTP.POST("/"+randomString(5), handle, options)
+	server.HTTP.PUT("/"+randomString(5), handle, options)
+	server.HTTP.PATCH("/"+randomString(5), handle, options)
+	server.HTTP.DELETE("/"+randomString(5), handle, options)
 }
 
 func TestHTTPAuthenticated(t *testing.T) {
@@ -443,4 +443,56 @@ func TestHTTPRateLimit(t *testing.T) {
 	doTest(200)
 	doTest(200)
 	doTest(429)
+}
+
+func TestHTTPGETHEAD(t *testing.T) {
+	t.Parallel()
+	server := newServer()
+
+	handle := func(request web.Request, writer web.Writer) web.HTTPResponse {
+		data := []byte("Hello, world!")
+		return web.HTTPResponse{
+			Reader:        io.NopCloser(bytes.NewReader(data)),
+			ContentType:   "text/plain",
+			ContentLength: uint64(len(data)),
+		}
+	}
+
+	path := randomString(5)
+
+	server.HTTP.GETHEAD("/"+path, handle, web.HandleOptions{})
+
+	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/%s", server.ListenPort, path))
+	if err != nil {
+		t.Fatalf("Network error: %s", err.Error())
+	}
+	if resp == nil {
+		t.Fatalf("Nil response returned")
+	}
+	if resp.StatusCode != 200 {
+		t.Fatalf("Unexpected HTTP status code. Expected %d got %d", 200, resp.StatusCode)
+	}
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("Error reading response body: %s", err.Error())
+	}
+	if len(data) == 0 {
+		t.Fatalf("No data returned when expected")
+	}
+	data = nil
+
+	resp, err = http.Head(fmt.Sprintf("http://localhost:%d/%s", server.ListenPort, path))
+	if err != nil {
+		t.Fatalf("Network error: %s", err.Error())
+	}
+	if resp == nil {
+		t.Fatalf("Nil response returned")
+	}
+	if resp.StatusCode != 200 {
+		t.Fatalf("Unexpected HTTP status code. Expected %d got %d", 200, resp.StatusCode)
+	}
+	data, _ = io.ReadAll(resp.Body)
+	if len(data) > 0 {
+		t.Fatalf("Data returned when none expected: %s", data)
+	}
 }
