@@ -127,7 +127,7 @@ func (a API) apiPostHandle(endpointHandle APIHandle, userData interface{}) route
 			response.Code = 200
 			response.Data = data
 		}
-		log.PWrite(a.server.RequestLogLevel, "API Request", map[string]interface{}{
+		log.PWrite(a.server.Options.RequestLogLevel, "API Request", map[string]interface{}{
 			"remote_addr": getRealIP(r.HTTP),
 			"method":      r.HTTP.Method,
 			"url":         r.HTTP.URL,

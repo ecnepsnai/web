@@ -31,17 +31,22 @@ type Server struct {
 	// The handler called when a request exceed the configured maximum per second limit. Defaults to a plain HTTP 429
 	// with "Too many requests" as the body.
 	RateLimitedHandler func(w http.ResponseWriter, r *http.Request)
+	// Additional options for the server
+	Options      ServerOptions
+	router       *router.Server
+	listener     net.Listener
+	shuttingDown bool
+	limits       map[string]*rate.Limiter
+	limitLock    *sync.Mutex
+}
+
+type ServerOptions struct {
 	// Specify the maximum number of requests any given client IP address can make per second. Requests that are rate
 	// limited will call the RateLimitedHandler, which you can override to customize the response.
 	// Setting this to 0 disables rate limiting.
 	MaxRequestsPerSecond int
 	// The level to use when logging out HTTP requests. Maps to github.com/ecnepsnai/logtic levels. Defaults to Debug.
 	RequestLogLevel int
-	router          *router.Server
-	listener        net.Listener
-	shuttingDown    bool
-	limits          map[string]*rate.Limiter
-	limitLock       *sync.Mutex
 }
 
 // New create a new server object that will bind to the provided address. Does not start the service automatically.
@@ -49,11 +54,13 @@ type Server struct {
 func New(bindAddress string) *Server {
 	httpRouter := router.New()
 	server := Server{
-		BindAddress:     bindAddress,
-		RequestLogLevel: logtic.LevelDebug,
-		router:          httpRouter,
-		limits:          map[string]*rate.Limiter{},
-		limitLock:       &sync.Mutex{},
+		BindAddress: bindAddress,
+		Options: ServerOptions{
+			RequestLogLevel: logtic.LevelDebug,
+		},
+		router:    httpRouter,
+		limits:    map[string]*rate.Limiter{},
+		limitLock: &sync.Mutex{},
 	}
 	httpRouter.SetNotFoundHandle(server.notFoundHandle)
 	httpRouter.SetMethodNotAllowedHandle(server.methodNotAllowedHandle)
@@ -103,7 +110,7 @@ func (s *Server) Stop() {
 }
 
 func (s *Server) notFoundHandle(w http.ResponseWriter, r *http.Request) {
-	log.PWrite(s.RequestLogLevel, "HTTP Request", map[string]interface{}{
+	log.PWrite(s.Options.RequestLogLevel, "HTTP Request", map[string]interface{}{
 		"remote_addr": getRealIP(r),
 		"method":      r.Method,
 		"url":         r.URL,
@@ -119,7 +126,7 @@ func (s *Server) notFoundHandle(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) methodNotAllowedHandle(w http.ResponseWriter, r *http.Request) {
-	log.PWrite(s.RequestLogLevel, "HTTP Request", map[string]interface{}{
+	log.PWrite(s.Options.RequestLogLevel, "HTTP Request", map[string]interface{}{
 		"remote_addr": getRealIP(r),
 		"method":      r.Method,
 		"url":         r.URL,
@@ -136,7 +143,7 @@ func (s *Server) methodNotAllowedHandle(w http.ResponseWriter, r *http.Request) 
 
 func (s *Server) isRateLimited(w http.ResponseWriter, r *http.Request) bool {
 	// If rate limiting is not configured return a new limiter for each connection
-	if s.MaxRequestsPerSecond == 0 {
+	if s.Options.MaxRequestsPerSecond == 0 {
 		return false
 	}
 
@@ -147,7 +154,7 @@ func (s *Server) isRateLimited(w http.ResponseWriter, r *http.Request) bool {
 	limiter := s.limits[sourceIP]
 	if limiter == nil {
 		// Allow MaxRequestsPerSecond every 1 second
-		limiter = rate.NewLimiter(rate.Limit(s.MaxRequestsPerSecond), s.MaxRequestsPerSecond)
+		limiter = rate.NewLimiter(rate.Limit(s.Options.MaxRequestsPerSecond), s.Options.MaxRequestsPerSecond)
 		s.limits[sourceIP] = limiter
 	}
 
@@ -157,7 +164,7 @@ func (s *Server) isRateLimited(w http.ResponseWriter, r *http.Request) bool {
 			"method":      r.Method,
 			"url":         r.URL,
 		})
-		log.PWrite(s.RequestLogLevel, "HTTP Request", map[string]interface{}{
+		log.PWrite(s.Options.RequestLogLevel, "HTTP Request", map[string]interface{}{
 			"remote_addr": getRealIP(r),
 			"method":      r.Method,
 			"url":         r.URL,

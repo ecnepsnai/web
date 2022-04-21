@@ -153,7 +153,7 @@ func (h HTTP) httpPostHandle(endpointHandle HTTPHandle, userData interface{}) ro
 		if response.Status != 0 {
 			code = response.Status
 		}
-		log.PWrite(h.server.RequestLogLevel, "HTTP Request", map[string]interface{}{
+		log.PWrite(h.server.Options.RequestLogLevel, "HTTP Request", map[string]interface{}{
 			"remote_addr": getRealIP(r.HTTP),
 			"method":      r.HTTP.Method,
 			"url":         r.HTTP.URL,

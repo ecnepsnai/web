@@ -139,7 +139,7 @@ func Example_ratelimit() {
 	server := web.New("127.0.0.1:8080")
 
 	// Restrict each connecting IP address to a maximum of 5 requests per second
-	server.MaxRequestsPerSecond = 5
+	server.Options.MaxRequestsPerSecond = 5
 
 	// Handle called when a request is rejected due to rate limiting
 	server.RateLimitedHandler = func(w http.ResponseWriter, r *http.Request) {

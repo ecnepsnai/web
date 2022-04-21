@@ -413,7 +413,7 @@ func TestHTTPRateLimit(t *testing.T) {
 
 	path := randomString(5)
 
-	server.MaxRequestsPerSecond = 2
+	server.Options.MaxRequestsPerSecond = 2
 	server.HTTP.GET("/"+path, handle, options)
 
 	testIdx := 1

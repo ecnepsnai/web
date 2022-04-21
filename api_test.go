@@ -355,7 +355,7 @@ func TestAPIRateLimit(t *testing.T) {
 
 	path := randomString(5)
 
-	server.MaxRequestsPerSecond = 2
+	server.Options.MaxRequestsPerSecond = 2
 	server.API.GET("/"+path, handle, options)
 
 	testIdx := 1
@@ -454,7 +454,7 @@ func TestAPILogLevel(t *testing.T) {
 	server.API.GET("/"+path, handle, options)
 
 	http.Get(fmt.Sprintf("http://localhost:%d/%s", server.ListenPort, path))
-	server.RequestLogLevel = logtic.LevelInfo
+	server.Options.RequestLogLevel = logtic.LevelInfo
 	http.Get(fmt.Sprintf("http://localhost:%d/%s", server.ListenPort, path))
 
 	logtic.Log.Close()

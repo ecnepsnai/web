@@ -76,7 +76,7 @@ func (s *Server) socketHandler(endpointHandle SocketHandle, options HandleOption
 		}, WSConn{
 			c: conn,
 		})
-		log.PWrite(s.RequestLogLevel, "Websocket request", map[string]interface{}{
+		log.PWrite(s.Options.RequestLogLevel, "Websocket request", map[string]interface{}{
 			"method":      r.HTTP.Method,
 			"url":         r.HTTP.RequestURI,
 			"remote_addr": getRealIP(r.HTTP),
