@@ -159,7 +159,7 @@ func (h HTTP) httpPostHandle(endpointHandle HTTPHandle, userData interface{}) ro
 		// 1. A range was actually requested by the client
 		// 2. The reader implemented Seek
 		// 3. The response was either default or 200
-		ranges, _ := router.ParseRangeHeader(r.HTTP.Header.Get("range"))
+		ranges := router.ParseRangeHeader(r.HTTP.Header.Get("range"))
 		_, canSeek := response.Reader.(io.ReadSeekCloser)
 		if len(ranges) > 0 && (response.Status == 0 || response.Status == 200) && !h.server.Options.IgnoreHTTPRangeRequests && canSeek {
 			router.ServeHTTPRange(router.ServeHTTPRangeOptions{

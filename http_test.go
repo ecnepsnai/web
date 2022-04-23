@@ -555,12 +555,12 @@ func TestHTTPRangeGet(t *testing.T) {
 	ranges := []string{
 		"bytes 0-99/500",
 		"bytes 200-300/500",
-		"bytes 400-500/500",
+		"bytes 400-499/500",
 	}
 
 	data := [][]byte{
-		randomData[0:99],
-		randomData[200:300],
+		randomData[0:100],
+		randomData[200:301],
 		randomData[400:],
 	}
 

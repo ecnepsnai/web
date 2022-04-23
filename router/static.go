@@ -92,19 +92,7 @@ func (s *impl) serveStatic(dir, url string, w http.ResponseWriter, req *http.Req
 		}
 	}
 
-	rangeHeader := req.Header.Get("range")
-	if rangeHeader != "" && sendBody {
-		ranges, err := ParseRangeHeader(rangeHeader)
-		if err != nil {
-			s.log.PError("Invalid range header", map[string]interface{}{
-				"request_path": requestPath,
-				"file_path":    filePath,
-				"range":        rangeHeader,
-				"error":        err.Error(),
-			})
-			w.WriteHeader(400)
-			return
-		}
+	if ranges := ParseRangeHeader(req.Header.Get("range")); len(ranges) > 0 && sendBody {
 		headers := map[string]string{
 			"Last-Modified": timeToHTTPDate(info.ModTime().UTC()),
 		}
@@ -140,7 +128,7 @@ func (s *impl) serveStatic(dir, url string, w http.ResponseWriter, req *http.Req
 	if sendBody {
 		io.Copy(w, f)
 	} else {
-		w.WriteHeader(204)
+		w.WriteHeader(200)
 	}
 }
 
@@ -163,13 +151,71 @@ type ServeHTTPRangeOptions struct {
 
 // ServeHTTPRange serve a HTTP range
 func ServeHTTPRange(options ServeHTTPRangeOptions) error {
+	for i := 0; i < len(options.Ranges); i++ {
+		r := options.Ranges[i]
+		if r.Start >= int64(options.TotalLength) {
+			options.Writer.WriteHeader(416)
+			return nil
+		}
+		if r.End >= int64(options.TotalLength) {
+			options.Ranges[i].End = -1
+		}
+	}
+
+	if len(options.Ranges) == 1 {
+		return serveHTTPRangeSingle(options)
+	}
+
+	return serveHTTPRangeMulti(options)
+}
+
+func serveHTTPRangeSingle(options ServeHTTPRangeOptions) error {
+	r := options.Ranges[0]
+
+	if CacheMaxAge > 0 {
+		options.Writer.Header().Set("Cache-Control", fmt.Sprintf("max-age=%d; public", int(CacheMaxAge.Seconds())))
+	}
+	options.Writer.Header().Set("Content-Type", options.MIMEType)
+	options.Writer.Header().Set("Content-Length", fmt.Sprintf("%d", r.Length(options.TotalLength)))
+	options.Writer.Header().Set("Content-Range", r.ContentRangeValue(options.TotalLength))
+	options.Writer.Header().Set("Date", timeToHTTPDate(time.Now().UTC()))
+	options.Writer.WriteHeader(206)
+
+	if r.Start >= 0 {
+		if _, err := options.Reader.Seek(r.Start, 0); err != nil {
+			return err
+		}
+		if r.End >= 0 {
+			// bytes=100-200
+			if _, err := io.CopyN(options.Writer, options.Reader, (r.End-r.Start)+1); err != nil {
+				return err
+			}
+		} else {
+			// bytes=100-
+			if _, err := io.Copy(options.Writer, options.Reader); err != nil {
+				return err
+			}
+		}
+	} else {
+		if _, err := options.Reader.Seek(r.End-(r.End*2), 2); err != nil {
+			return err
+		}
+		// bytes=-100
+		if _, err := io.Copy(options.Writer, options.Reader); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func serveHTTPRangeMulti(options ServeHTTPRangeOptions) error {
 	mp := multipart.NewWriter(options.Writer)
 	options.Writer.Header().Set("Content-Type", fmt.Sprintf("multipart/byteranges; boundary=%s", mp.Boundary()))
 	for k, v := range options.Headers {
 		options.Writer.Header().Add(k, v)
 	}
 	options.Writer.Header().Set("Date", timeToHTTPDate(time.Now().UTC()))
-	options.Writer.Header().Set("Accept-Ranges", "bytes")
 	options.Writer.WriteHeader(206)
 
 	for _, r := range options.Ranges {
@@ -186,10 +232,12 @@ func ServeHTTPRange(options ServeHTTPRangeOptions) error {
 				return err
 			}
 			if r.End >= 0 {
-				if _, err := io.CopyN(part, options.Reader, r.End-r.Start); err != nil {
+				// bytes=100-200
+				if _, err := io.CopyN(part, options.Reader, (r.End-r.Start)+1); err != nil {
 					return err
 				}
 			} else {
+				// bytes=100-
 				if _, err := io.Copy(part, options.Reader); err != nil {
 					return err
 				}
@@ -198,6 +246,7 @@ func ServeHTTPRange(options ServeHTTPRangeOptions) error {
 			if _, err := options.Reader.Seek(r.End-(r.End*2), 2); err != nil {
 				return err
 			}
+			// bytes=-100
 			if _, err := io.Copy(part, options.Reader); err != nil {
 				return err
 			}
@@ -242,6 +291,32 @@ type ByteRange struct {
 	End   int64
 }
 
+// Length return the length of data represented by this byte range
+func (br ByteRange) Length(total uint64) uint64 {
+	start := uint64(0)
+	end := total
+
+	// bytes=-100
+	if br.Start < 0 && br.End >= 0 {
+		start = total - uint64(br.End)
+		end = total
+	}
+
+	// bytes=100-200
+	if br.Start >= 0 && br.End >= 0 {
+		start = uint64(br.Start)
+		end = uint64(br.End + 1)
+	}
+
+	// bytes=100-
+	if br.Start >= 0 && br.End < 0 {
+		start = uint64(br.Start)
+		end = total
+	}
+
+	return end - start
+}
+
 // ContentRangeValue will return a value sutible for the content-range header
 func (br ByteRange) ContentRangeValue(total uint64) string {
 	start := ""
@@ -250,7 +325,7 @@ func (br ByteRange) ContentRangeValue(total uint64) string {
 	// bytes=-100
 	if br.Start < 0 && br.End >= 0 {
 		start = fmt.Sprintf("%d", total-uint64(br.End))
-		end = fmt.Sprintf("%d", total)
+		end = fmt.Sprintf("%d", total-1)
 	}
 
 	// bytes=100-200
@@ -262,24 +337,24 @@ func (br ByteRange) ContentRangeValue(total uint64) string {
 	// bytes=100-
 	if br.Start >= 0 && br.End < 0 {
 		start = fmt.Sprintf("%d", br.Start)
-		end = fmt.Sprintf("%d", total)
+		end = fmt.Sprintf("%d", total-1)
 	}
 
 	return fmt.Sprintf("bytes %s-%s/%d", start, end, total)
 }
 
-// ParseRangeHeader will parse the value from the HTTP ranges header and return a slice of byte ranges, or an error
-// if the value is malformed.
-func ParseRangeHeader(value string) ([]ByteRange, error) {
+// ParseRangeHeader will parse the value from the HTTP ranges header and return a slice of byte ranges, or nil if the
+// headers value is malformed.
+func ParseRangeHeader(value string) []ByteRange {
 	value = strings.ToLower(value)
 
 	if len(value) < 5 {
-		return nil, fmt.Errorf("no bytes prefix")
+		return nil
 	}
 
 	prefix := value[0:6]
 	if prefix != "bytes=" {
-		return nil, fmt.Errorf("invalid prefix: %s", prefix)
+		return nil
 	}
 
 	rangeStr := strings.ReplaceAll(value[6:], ", ", ",")
@@ -289,7 +364,7 @@ func ParseRangeHeader(value string) ([]ByteRange, error) {
 	for i, r := range ranges {
 		parts := strings.Split(r, "-")
 		if len(parts) < 1 {
-			return nil, fmt.Errorf("invalid range value")
+			return nil
 		}
 
 		start := int64(-1)
@@ -298,14 +373,14 @@ func ParseRangeHeader(value string) ([]ByteRange, error) {
 		if parts[0] != "" {
 			s, err := strconv.ParseInt(parts[0], 10, 64)
 			if err != nil {
-				return nil, fmt.Errorf("invalid range value")
+				return nil
 			}
 			start = s
 		}
 		if len(parts) == 2 && parts[1] != "" {
 			e, err := strconv.ParseInt(parts[1], 10, 64)
 			if err != nil {
-				return nil, fmt.Errorf("invalid range value")
+				return nil
 			}
 			end = e
 		}
@@ -313,5 +388,5 @@ func ParseRangeHeader(value string) ([]ByteRange, error) {
 		byteRanges[i] = ByteRange{start, end}
 	}
 
-	return byteRanges, nil
+	return byteRanges
 }

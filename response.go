@@ -24,6 +24,6 @@ type HTTPResponse struct {
 	Headers map[string]string
 	// ContentType the content type of the response. Will overwrite any 'content-type' header in Headers.
 	ContentType string
-	// ContentLength the length of the content. If zero then Status should be 204.
+	// ContentLength the length of the content.
 	ContentLength uint64
 }
