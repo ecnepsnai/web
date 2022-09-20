@@ -2,7 +2,9 @@ package web
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"runtime/debug"
 
 	"github.com/ecnepsnai/web/router"
 	"github.com/gorilla/websocket"
@@ -26,15 +28,18 @@ var upgrader = websocket.Upgrader{
 	WriteBufferSize: 1024,
 }
 
-func socketPanicRecover() {
-	if r := recover(); r != nil {
-		log.Error("Recovered from socket handle panic: %#v", r)
-	}
-}
-
 func (s *Server) socketHandler(endpointHandle SocketHandle, options HandleOptions) router.Handle {
 	return func(w http.ResponseWriter, r router.Request) {
-		defer socketPanicRecover()
+		defer func() {
+			if err := recover(); err != nil {
+				log.PError("Recovered from socket panic", map[string]interface{}{
+					"url":    r.HTTP.URL,
+					"method": r.HTTP.Method,
+					"error":  fmt.Sprintf("%s", err),
+				})
+				log.Debug("%s", debug.Stack())
+			}
+		}()
 
 		var userData interface{}
 

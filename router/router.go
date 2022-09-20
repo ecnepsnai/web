@@ -10,7 +10,9 @@ This package allows you modify the routing table ad-hoc, even while the server i
 package router
 
 import (
+	"fmt"
 	"net/http"
+	"runtime/debug"
 	"strings"
 )
 
@@ -56,8 +58,9 @@ func (s *impl) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			s.log.PError("Recovered from router panic", map[string]interface{}{
 				"request_method": req.Method,
 				"request_path":   req.URL.Path,
-				"error":          r.(string),
+				"error":          fmt.Sprintf("%s", r),
 			})
+			s.log.Debug("%s", debug.Stack())
 			w.WriteHeader(500)
 		}
 	}()
@@ -213,9 +216,9 @@ func (s *Server) registerHandle(method, path string, handler Handle) {
 // Any segment that begins with a colon (:) will be parameterized. The value of all parameters for the path will
 // be populated into the Parameters map included in the Request object in the handler. For example:
 //
-//     handle path  = "/widgets/:widget_id/cost/:currency"
-//     request path = "/widgets/1234/cost/cad"
-//     parameters   = { "widget_id": "1234", "currency": "cad" }
+//	handle path  = "/widgets/:widget_id/cost/:currency"
+//	request path = "/widgets/1234/cost/cad"
+//	parameters   = { "widget_id": "1234", "currency": "cad" }
 //
 // Any segment that begins with an astreisk (*) will be parameterized as well, however unlike colon parameters, these
 // will include the entire remaining path as the value of the parameter, whereas colon parameters will only include that
@@ -223,27 +226,26 @@ func (s *Server) registerHandle(method, path string, handler Handle) {
 // parameter name. Any segments included after the parameter name are ignored.
 // For example
 //
-//     handle path  = "/proxy/*url"
-//     request path = "/proxy/some/multi/segmented/value"
-//     parameters   = { "url": "some/multi/segmented/value" }
+//	handle path  = "/proxy/*url"
+//	request path = "/proxy/some/multi/segmented/value"
+//	parameters   = { "url": "some/multi/segmented/value" }
 //
 // Parameter segments are exclusive, meaning you can not have a static segment at the same position as a
 // parameterized element. For example, these both will panic:
 //
-//     // This panics because /all occupies the same segment as the parameter :username
-//     server.Handle("GET", "/users/:username", ...)
-//     server.Handle("GET", "/users/all", ...)
+//	// This panics because /all occupies the same segment as the parameter :username
+//	server.Handle("GET", "/users/:username", ...)
+//	server.Handle("GET", "/users/all", ...)
 //
-//     // This panics because /user/id occupied the same segment as the wildcard parameter *param
-//     server.Handle("GET", "/users/*param", ...)
-//     server.Handle("GET", "/users/user/id", ...)
+//	// This panics because /user/id occupied the same segment as the wildcard parameter *param
+//	server.Handle("GET", "/users/*param", ...)
+//	server.Handle("GET", "/users/user/id", ...)
 //
 // Paths that end with a slash are unique to those that don't. For example, these would be considred unique by the
 // router:
 //
-//     server.Handle("GET", "/users/all/", ...)
-//     server.Handle("GET", "/users/all", ...)
-//
+//	server.Handle("GET", "/users/all/", ...)
+//	server.Handle("GET", "/users/all", ...)
 func (s *Server) Handle(method, path string, handler Handle) {
 	methods := map[string]bool{
 		"CONNECT": true,
@@ -331,10 +333,11 @@ func (s *Server) RemoveHandle(method, path string) {
 // a local filesystem directory localRoot.
 //
 // For example:
-//    localRoot = /usr/share/www/
-//    urlRoot   = /static/
 //
-//    Request for '/static/image.jpg' would read file '/usr/share/www/image.jpg'
+//	localRoot = /usr/share/www/
+//	urlRoot   = /static/
+//
+//	Request for '/static/image.jpg' would read file '/usr/share/www/image.jpg'
 //
 // Will panic if any handle is registered under urlRoot. Attempting to register a new handle under urlRoot after calling
 // ServeFiles will panic.
