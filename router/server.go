@@ -1,6 +1,7 @@
 package router
 
 import (
+	golog "log"
 	"net"
 	"net/http"
 	"sync"
@@ -39,7 +40,10 @@ func New() *Server {
 		httpServer: &http.Server{
 			ReadTimeout:       5 * time.Minute,
 			ReadHeaderTimeout: 5 * time.Minute,
-			ErrorLog:          log.GoLogger(logtic.LevelError),
+			ErrorLog: golog.New(muteLogger{
+				source: log,
+				level:  logtic.LevelError,
+			}, "", 0),
 		},
 	}
 	return s
@@ -59,8 +63,6 @@ func (s *Server) ListenAndServe(addr string) error {
 		})
 		return err
 	}
-	s.listener = &l
-	s.httpServer.Handler = s.impl
 	s.impl.log.PDebug("Listen", map[string]interface{}{
 		"address": addr,
 	})
@@ -72,7 +74,9 @@ func (s *Server) ListenAndServe(addr string) error {
 // An error will only be returned if there was an error listening or the listener was abruptly closed.
 func (s *Server) Serve(listener net.Listener) error {
 	s.impl.log.Debug("Serve on listener")
-	return http.Serve(listener, s.impl)
+	s.httpServer.Handler = s.impl
+	s.listener = &listener
+	return s.httpServer.Serve(listener)
 }
 
 // Stop will stop the server. Server.ListenAndServe or Server.Serve will return net.ErrClosed. Does nothing if the
