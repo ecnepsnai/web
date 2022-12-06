@@ -32,16 +32,10 @@ func getIPFromRemoteAddr(remoteAddr string) string {
 // stripPortFromSocketAddr strip the port from a socket address (address:port, return address)
 func stripPortFromSocketAddr(socketAddr string) string {
 	length := len(socketAddr)
-	if socketAddr[length-6] == ':' {
-		return socketAddr[0 : length-6]
-	} else if socketAddr[length-5] == ':' {
-		return socketAddr[0 : length-5]
-	} else if socketAddr[length-4] == ':' {
-		return socketAddr[0 : length-4]
-	} else if socketAddr[length-3] == ':' {
-		return socketAddr[0 : length-3]
-	} else if socketAddr[length-2] == ':' {
-		return socketAddr[0 : length-2]
+	for i := length - 1; i >= 0; i-- {
+		if socketAddr[i] == ':' {
+			return socketAddr[0:i]
+		}
 	}
 
 	return socketAddr

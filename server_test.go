@@ -1,15 +1,63 @@
 package web_test
 
 import (
+	"context"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
+	"path"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/ecnepsnai/web"
 )
+
+func TestUnixSocket(t *testing.T) {
+	t.Parallel()
+	socketPath := path.Join(t.TempDir(), "TestUnixSocket")
+	l, err := net.Listen("unix", socketPath)
+	if err != nil {
+		t.Fatalf("Error starting unix socket: %s", err.Error())
+	}
+	server := web.NewListener(l)
+	go server.Start()
+	time.Sleep(5 * time.Millisecond)
+
+	handle := func(request web.Request) (interface{}, *web.Error) {
+		return true, nil
+	}
+	options := web.HandleOptions{}
+
+	path1 := "path1"
+	path2 := "path2"
+
+	server.API.GET("/"+path1, handle, options)
+
+	httpc := http.Client{
+		Transport: &http.Transport{
+			DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
+				return net.Dial("unix", socketPath)
+			},
+		},
+	}
+
+	check := func(path string, expected int) {
+		resp, err := httpc.Get(fmt.Sprintf("http://unix/%s", path))
+		if err != nil {
+			t.Fatalf("Network error: %s", err.Error())
+		}
+
+		if resp.StatusCode != expected {
+			body, _ := io.ReadAll(resp.Body)
+			t.Fatalf("Unexpected status code for %s. Expected %d got %d: %s", path, expected, resp.StatusCode, body)
+		}
+	}
+
+	check(path1, 200)
+	check(path2, 404)
+}
 
 func TestRestartServer(t *testing.T) {
 	t.Parallel()

@@ -14,6 +14,10 @@ func TestGetIPFromRemoteAddr(t *testing.T) {
 	if ip := getIPFromRemoteAddr("[1::1]:4233"); ip != "1::1" {
 		t.Errorf("Incorrect result for IP address. Expected: %s Actual: %s", "1::1", ip)
 	}
+
+	if ip := getIPFromRemoteAddr("@"); ip != "@" {
+		t.Errorf("Incorrect result for invalid IP address. Expected: %s Actual %s", "@", ip)
+	}
 }
 
 func BenchmarkGetIPFromRemoteAddr(b *testing.B) {

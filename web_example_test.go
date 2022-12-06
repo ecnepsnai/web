@@ -1,6 +1,7 @@
 package web_test
 
 import (
+	"net"
 	"net/http"
 	"os"
 	"time"
@@ -146,6 +147,25 @@ func Example_ratelimit() {
 		w.WriteHeader(429)
 		w.Write([]byte("Too many requests"))
 	}
+
+	handle := func(request web.Request) (interface{}, *web.Error) {
+		return time.Now().Unix(), nil
+	}
+
+	options := web.HandleOptions{}
+	server.API.GET("/time", handle, options)
+
+	if err := server.Start(); err != nil {
+		panic(err)
+	}
+}
+
+func Example_unixsocket() {
+	l, err := net.Listen("unix", "/example.socket")
+	if err != nil {
+		panic(err)
+	}
+	server := web.NewListener(l)
 
 	handle := func(request web.Request) (interface{}, *web.Error) {
 		return time.Now().Unix(), nil

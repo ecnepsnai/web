@@ -13,10 +13,9 @@ import (
 
 // Server describes an web server
 type Server struct {
-	// The socket address that the server will listen to. Must be in the format of "address:port", such as
-	// "localhost:8080" or "0.0.0.0:8080". Changing this after the server has started has no effect.
+	// The socket address that the server is listening on. Only populated if the server was created with web.New().
 	BindAddress string
-	// The port that this server is listening on.
+	// The port that this server is listening on. Only populated if the server was created with web.New().
 	ListenPort uint16
 	// The API instance that is used to register JSON endpoints.
 	API API
@@ -51,7 +50,8 @@ type ServerOptions struct {
 	IgnoreHTTPRangeRequests bool
 }
 
-// New create a new server object that will bind to the provided address. Does not start the service automatically.
+// New create a new server object that will bind to the provided address. Does not accept incoming connections until
+// the server is started.
 // Bind address must be in the format of "address:port", such as "localhost:8080" or "0.0.0.0:8080".
 func New(bindAddress string) *Server {
 	httpRouter := router.New()
@@ -76,24 +76,51 @@ func New(bindAddress string) *Server {
 	return &server
 }
 
+// NewListener creates a new server object that will use the given listener. Does not accept incoming connections until
+// the server is started.
+func NewListener(listener net.Listener) *Server {
+	httpRouter := router.New()
+	server := Server{
+		Options: ServerOptions{
+			RequestLogLevel: logtic.LevelDebug,
+		},
+		router:    httpRouter,
+		listener:  listener,
+		limits:    map[string]*rate.Limiter{},
+		limitLock: &sync.Mutex{},
+	}
+	httpRouter.SetNotFoundHandle(server.notFoundHandle)
+	httpRouter.SetMethodNotAllowedHandle(server.methodNotAllowedHandle)
+	server.API = API{
+		server: &server,
+	}
+	server.HTTP = HTTP{
+		server: &server,
+	}
+
+	return &server
+}
+
 // Start will start the web server and listen on the socket address. This method blocks.
 // If a server is stopped using the Stop() method, this returns no error.
 func (s *Server) Start() error {
-	listener, err := net.Listen("tcp", s.BindAddress)
-	if err != nil {
-		log.PError("Error listening on address", map[string]interface{}{
+	if s.BindAddress != "" {
+		listener, err := net.Listen("tcp", s.BindAddress)
+		if err != nil {
+			log.PError("Error listening on address", map[string]interface{}{
+				"listen_address": s.BindAddress,
+				"error":          err.Error(),
+			})
+			return err
+		}
+		s.listener = listener
+		s.ListenPort = uint16(listener.Addr().(*net.TCPAddr).Port)
+		log.PInfo("HTTP server listen", map[string]interface{}{
 			"listen_address": s.BindAddress,
-			"error":          err.Error(),
+			"listen_port":    s.ListenPort,
 		})
-		return err
 	}
-	s.listener = listener
-	s.ListenPort = uint16(listener.Addr().(*net.TCPAddr).Port)
-	log.PInfo("HTTP server listen", map[string]interface{}{
-		"listen_address": s.BindAddress,
-		"listen_port":    s.ListenPort,
-	})
-	if err := s.router.Serve(listener); err != nil {
+	if err := s.router.Serve(s.listener); err != nil {
 		if s.shuttingDown {
 			log.Info("HTTP server stopped")
 			return nil
