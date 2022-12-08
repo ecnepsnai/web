@@ -13,17 +13,17 @@ func ExampleRequest_DecodeJSON() {
 		FirstName string `json:"first_name"`
 	}
 
-	handle := func(request web.Request) (interface{}, *web.Error) {
+	handle := func(request web.Request) (interface{}, *web.APIResponse, *web.Error) {
 		username := request.Parameters["username"]
 		params := userRequestType{}
 		if err := request.DecodeJSON(&params); err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		return map[string]string{
 			"first_name": params.FirstName,
 			"username":   username,
-		}, nil
+		}, nil, nil
 	}
 	server.API.POST("/users/user/:username", handle, web.HandleOptions{})
 
@@ -33,10 +33,10 @@ func ExampleRequest_DecodeJSON() {
 func ExampleRequest_ClientIPAddress() {
 	server := web.New("127.0.0.1:8080")
 
-	handle := func(request web.Request) (interface{}, *web.Error) {
+	handle := func(request web.Request) (interface{}, *web.APIResponse, *web.Error) {
 		clientAddr := request.ClientIPAddress().String()
 		fmt.Printf("%s\n", clientAddr)
-		return clientAddr, nil
+		return clientAddr, nil, nil
 	}
 	server.API.POST("/ip/my_ip", handle, web.HandleOptions{})
 

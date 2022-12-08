@@ -6,10 +6,13 @@ import (
 )
 
 // APIHandle describes a method signature for handling an API request
-type APIHandle func(request Request) (interface{}, *Error)
+type APIHandle func(request Request) (interface{}, *APIResponse, *Error)
+
+// HTTPEasyHandle describes a method signature for handling an HTTP request
+type HTTPEasyHandle func(request Request) HTTPResponse
 
 // HTTPHandle describes a method signature for handling an HTTP request
-type HTTPHandle func(request Request, writer Writer) HTTPResponse
+type HTTPHandle func(w http.ResponseWriter, r Request)
 
 // SocketHandle describes a method signature for handling a HTTP websocket request
 type SocketHandle func(request Request, conn WSConn)

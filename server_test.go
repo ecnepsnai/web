@@ -25,8 +25,8 @@ func TestUnixSocket(t *testing.T) {
 	go server.Start()
 	time.Sleep(5 * time.Millisecond)
 
-	handle := func(request web.Request) (interface{}, *web.Error) {
-		return true, nil
+	handle := func(request web.Request) (interface{}, *web.APIResponse, *web.Error) {
+		return true, nil, nil
 	}
 	options := web.HandleOptions{}
 
@@ -63,8 +63,8 @@ func TestRestartServer(t *testing.T) {
 	t.Parallel()
 	server := newServer()
 
-	handle := func(request web.Request) (interface{}, *web.Error) {
-		return true, nil
+	handle := func(request web.Request) (interface{}, *web.APIResponse, *web.Error) {
+		return true, nil, nil
 	}
 	options := web.HandleOptions{}
 
@@ -206,9 +206,9 @@ func TestMethodNotAllowed(t *testing.T) {
 	}
 
 	path := randomString(12)
-	server.HTTP.DELETE("/"+path, web.HTTPHandle(func(request web.Request, writer web.Writer) web.HTTPResponse {
+	server.HTTPEasy.DELETE("/"+path, func(request web.Request) web.HTTPResponse {
 		return web.HTTPResponse{}
-	}), web.HandleOptions{})
+	}, web.HandleOptions{})
 
 	// HTML
 	func() {

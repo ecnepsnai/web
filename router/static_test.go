@@ -1,6 +1,7 @@
 package router_test
 
 import (
+	"bytes"
 	"net/http"
 	"os"
 	"path"
@@ -45,6 +46,7 @@ func TestRouterStaticSimple(t *testing.T) {
 	time.Sleep(5 * time.Millisecond)
 
 	testStaticRequest(t, "GET", "http://"+listenAddress+"/static/assets/index.html", 200, "text/html")
+	testStaticRequest(t, "GET", "http://"+listenAddress+"/static/assets/", 200, "text/html")
 }
 
 func TestRouterStatic(t *testing.T) {
@@ -216,6 +218,31 @@ func TestRouterStaticHeadRequest(t *testing.T) {
 	testStaticHeadRequest(t, "http://"+listenAddress+"/static/assets/image/bg.jpg", "image/jpeg", imageTime)
 	testStaticHeadRequest(t, "http://"+listenAddress+"/static/assets/js/main.js", "text/javascript", jsTime)
 	testStaticHeadRequest(t, "http://"+listenAddress+"/static/assets/css/style.css", "text/css", cssTime)
+}
+
+func TestRouterStaticMethodNotAllowed(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	os.WriteFile(path.Join(dir, "index.html"), []byte("foo"), os.ModePerm)
+
+	listenAddress := getListenAddress()
+
+	server := router.New()
+	server.ServeFiles(dir, "/static/assets/")
+	go func() {
+		server.ListenAndServe(listenAddress)
+	}()
+	time.Sleep(5 * time.Millisecond)
+
+	resp, err := http.Post("http://"+listenAddress+"/static/assets/index.html", "foo/bar", bytes.NewReader([]byte("hello world")))
+	if err != nil {
+		panic(err)
+	}
+
+	if resp.StatusCode != 405 {
+		t.Errorf("Unexpected response code. Expected 405 got %d", resp.StatusCode)
+	}
 }
 
 func TestRouterStaticIfModifiedSinceRequest(t *testing.T) {

@@ -11,27 +11,6 @@ type Request struct {
 	HTTP       *http.Request
 	Parameters map[string]string
 	UserData   interface{}
-	writer     http.ResponseWriter
-}
-
-// AddCookie add a cookie to the response
-func (r Request) AddCookie(cookie *http.Cookie) {
-	http.SetCookie(r.writer, cookie)
-}
-
-// Writer HTTP response writer
-type Writer struct {
-	w http.ResponseWriter
-}
-
-// Write see http.ResponseWriter.Write for more
-func (w Writer) Write(d []byte) (int, error) {
-	return w.w.Write(d)
-}
-
-// WriteHeader see http.ResponseWriter.Write for more
-func (w Writer) WriteHeader(statusCode int) {
-	w.w.WriteHeader(statusCode)
 }
 
 // DecodeJSON unmarshal the JSON body to the provided interface

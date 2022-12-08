@@ -469,7 +469,7 @@ func TestRangeGetMultipleAbsoluteRanges(t *testing.T) {
 	}
 }
 
-func TestRangeGetMultipleAbsoluteAndRelativeRanges(t *testing.T) {
+func TestRangeGetMultipleAbsoluteAndRelativeRanges1(t *testing.T) {
 	dir := t.TempDir()
 	os.WriteFile(path.Join(dir, "data.txt"), sampleData, os.ModePerm)
 
@@ -490,6 +490,94 @@ func TestRangeGetMultipleAbsoluteAndRelativeRanges(t *testing.T) {
 
 	req.Header.Add("User-Agent", "rangetest/1.0")
 	req.Header.Add("Range", "bytes=0-99,-100")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		panic(err)
+	}
+
+	if resp.StatusCode != 206 {
+		t.Fatalf("unexpected HTTP status code. Expected %d got %d", 206, resp.StatusCode)
+	}
+
+	ct, args, err := mime.ParseMediaType(resp.Header.Get("Content-Type"))
+	if err != nil {
+		panic(err)
+	}
+	if ct != "multipart/byteranges" {
+		t.Fatalf("incorrect value of content typ header. Expected 'multipart/byteranges' got '%s'", ct)
+	}
+	boundary := args["boundary"]
+	if boundary == "" {
+		t.Fatalf("missing multipart boundary")
+	}
+	mpReader := multipart.NewReader(resp.Body, boundary)
+
+	expectedContentRangeHeaders := []string{
+		"bytes 0-99/500",
+		"bytes 400-499/500",
+	}
+	expectedData := [][]byte{
+		sampleData[0:100],
+		sampleData[400:500],
+	}
+	expectedNumberOfParts := 2
+
+	partIdx := 0
+	for {
+		part, err := mpReader.NextPart()
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			panic(err)
+		}
+		if partIdx > expectedNumberOfParts-1 {
+			t.Fatalf("unexpected number of data parts returned. Expected %d but got at least %d", expectedNumberOfParts, partIdx)
+		}
+
+		if partType := part.Header.Get("Content-Type"); partType != "text/plain" {
+			t.Fatalf("invalid content type header value in part %d. Expected 'text/plain' got '%s'", partIdx+1, partType)
+		}
+
+		if contentRange := part.Header.Get("Content-Range"); contentRange != expectedContentRangeHeaders[partIdx] {
+			t.Fatalf("invalid content range header value in part %d. Expected '%s' got '%s'", partIdx+1, expectedContentRangeHeaders[partIdx], contentRange)
+		}
+
+		partData, err := io.ReadAll(part)
+		if err != nil {
+			t.Fatalf("error reading data from part %d: %s", partIdx+1, err.Error())
+		}
+
+		if !bytes.Equal(partData, expectedData[partIdx]) {
+			t.Fatalf("invalid data returned in part %d", partIdx+1)
+		}
+
+		partIdx++
+	}
+}
+
+func TestRangeGetMultipleAbsoluteAndRelativeRanges2(t *testing.T) {
+	dir := t.TempDir()
+	os.WriteFile(path.Join(dir, "data.txt"), sampleData, os.ModePerm)
+
+	listenAddress := getListenAddress()
+
+	server := router.New()
+	server.ServeFiles(dir, "/")
+	go func() {
+		server.ListenAndServe(listenAddress)
+	}()
+	time.Sleep(5 * time.Millisecond)
+	url := "http://" + listenAddress + "/data.txt"
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		panic(err)
+	}
+
+	req.Header.Add("User-Agent", "rangetest/1.0")
+	req.Header.Add("Range", "bytes=0-99,400-")
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {

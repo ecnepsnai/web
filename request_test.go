@@ -14,7 +14,7 @@ func TestRequestRealIP(t *testing.T) {
 
 	var expectedIP string
 
-	handle := func(request web.Request, writer web.Writer) web.HTTPResponse {
+	handle := func(request web.Request) web.HTTPResponse {
 		if request.ClientIPAddress().String() != expectedIP {
 			t.Errorf("Unexpected client IP address. Expected '%s' got '%s'", expectedIP, request.ClientIPAddress().String())
 		}
@@ -23,7 +23,7 @@ func TestRequestRealIP(t *testing.T) {
 	options := web.HandleOptions{}
 
 	path := randomString(5)
-	server.HTTP.GET("/"+path, handle, options)
+	server.HTTPEasy.GET("/"+path, handle, options)
 
 	var req *http.Request
 	var err error

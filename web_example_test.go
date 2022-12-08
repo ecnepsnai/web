@@ -12,8 +12,8 @@ import (
 func Example_json() {
 	server := web.New("127.0.0.1:8080")
 
-	handle := func(request web.Request) (interface{}, *web.Error) {
-		return time.Now().Unix(), nil
+	handle := func(request web.Request) (interface{}, *web.APIResponse, *web.Error) {
+		return time.Now().Unix(), nil, nil
 	}
 
 	options := web.HandleOptions{}
@@ -27,7 +27,7 @@ func Example_json() {
 func Example_file() {
 	server := web.New("127.0.0.1:8080")
 
-	handle := func(request web.Request, writer web.Writer) web.HTTPResponse {
+	handle := func(request web.Request) web.HTTPResponse {
 		f, err := os.Open("/foo/bar")
 		if err != nil {
 			return web.HTTPResponse{
@@ -40,7 +40,7 @@ func Example_file() {
 	}
 
 	options := web.HandleOptions{}
-	server.HTTP.GET("/file", handle, options)
+	server.HTTPEasy.GET("/file", handle, options)
 
 	if err := server.Start(); err != nil {
 		panic(err)
@@ -55,25 +55,28 @@ func Example_authentication() {
 	}
 
 	// Login
-	loginHandle := func(request web.Request) (interface{}, *web.Error) {
+	loginHandle := func(request web.Request) (interface{}, *web.APIResponse, *web.Error) {
 		// Do any authentication logic here
 
 		// Assuming the user authenticated successfully...
-		request.AddCookie(&http.Cookie{
-			Name:    "session",
-			Value:   "1",
-			Path:    "/",
-			Expires: time.Now().AddDate(0, 0, 1),
-		})
-		return true, nil
+		return true, &web.APIResponse{
+			Cookies: []http.Cookie{
+				{
+					Name:    "session",
+					Value:   "1",
+					Path:    "/",
+					Expires: time.Now().AddDate(0, 0, 1),
+				},
+			},
+		}, nil
 	}
 	unauthenticatedOptions := web.HandleOptions{}
 	server.API.GET("/login", loginHandle, unauthenticatedOptions)
 
 	// Get User Info
-	getUserHandle := func(request web.Request) (interface{}, *web.Error) {
+	getUserHandle := func(request web.Request) (interface{}, *web.APIResponse, *web.Error) {
 		user := request.UserData.(User)
-		return user, nil
+		return user, nil, nil
 	}
 
 	authenticatedOptions := web.HandleOptions{
@@ -148,8 +151,8 @@ func Example_ratelimit() {
 		w.Write([]byte("Too many requests"))
 	}
 
-	handle := func(request web.Request) (interface{}, *web.Error) {
-		return time.Now().Unix(), nil
+	handle := func(request web.Request) (interface{}, *web.APIResponse, *web.Error) {
+		return time.Now().Unix(), nil, nil
 	}
 
 	options := web.HandleOptions{}
@@ -167,8 +170,8 @@ func Example_unixsocket() {
 	}
 	server := web.NewListener(l)
 
-	handle := func(request web.Request) (interface{}, *web.Error) {
-		return time.Now().Unix(), nil
+	handle := func(request web.Request) (interface{}, *web.APIResponse, *web.Error) {
+		return time.Now().Unix(), nil, nil
 	}
 
 	options := web.HandleOptions{}

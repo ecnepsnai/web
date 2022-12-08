@@ -1,8 +1,6 @@
 package web
 
 import (
-	"fmt"
-	"io"
 	"net/http"
 	"strconv"
 	"time"
@@ -10,36 +8,9 @@ import (
 	"github.com/ecnepsnai/web/router"
 )
 
-// HTTP describes a HTTP server. HTTP handles are expected to return a reader and specify the content
-// type and length themselves.
-//
-// The HTTP server supports HTTP range requests, should the client request it and the application provide a
-// supported Reader (io.ReadSeekCloser).
+// HTTP describes a HTTP server. HTTP handles are exposed to the raw http request and response writers.
 type HTTP struct {
 	server *Server
-}
-
-// Static registers a GET and HEAD handle for all requests under path to serve any files matching the directory.
-//
-// For example:
-//    directory = /usr/share/www/
-//    path      = /static/
-//
-//    Request for '/static/image.jpg' would read file '/usr/share/www/image.jpg'
-//
-// Will panic if any handle is registered under path. Attempting to register a new handle under path after calling
-// Static will panic.
-//
-// Caching will be enabled by default for all files served by this router. The mtime of the file will be used for the
-// Last-Modified date.
-//
-// By default, the server will use the file extension (if any) to determine the MIME type for the response.
-func (h HTTP) Static(path string, directory string) {
-	log.PDebug("Serving files from directory", map[string]interface{}{
-		"directory": directory,
-		"path":      path,
-	})
-	h.server.router.ServeFiles(directory, path)
 }
 
 // GET register a new HTTP GET request handle
@@ -49,14 +20,6 @@ func (h HTTP) GET(path string, handle HTTPHandle, options HandleOptions) {
 
 // HEAD register a new HTTP HEAD request handle
 func (h HTTP) HEAD(path string, handle HTTPHandle, options HandleOptions) {
-	h.registerHTTPEndpoint("HEAD", path, handle, options)
-}
-
-// GETHEAD registers both a HTTP GET and HTTP HEAD request handle. Equal to calling HTTP.GET and HTTP.HEAD.
-//
-// Handle responses can always return a reader, it will automatically be ignored for HEAD requests.
-func (h HTTP) GETHEAD(path string, handle HTTPHandle, options HandleOptions) {
-	h.registerHTTPEndpoint("GET", path, handle, options)
 	h.registerHTTPEndpoint("HEAD", path, handle, options)
 }
 
@@ -114,8 +77,9 @@ func (h HTTP) httpPreHandle(endpointHandle HTTPHandle, options HandleOptions) ro
 			}
 		}
 
+		var userData interface{}
 		if options.AuthenticateMethod != nil {
-			userData := options.AuthenticateMethod(request.HTTP)
+			userData = options.AuthenticateMethod(request.HTTP)
 			if isUserdataNil(userData) {
 				if options.UnauthorizedMethod == nil {
 					log.PWarn("Rejected request to authenticated HTTP endpoint", map[string]interface{}{
@@ -130,97 +94,21 @@ func (h HTTP) httpPreHandle(endpointHandle HTTPHandle, options HandleOptions) ro
 				}
 
 				options.UnauthorizedMethod(w, request.HTTP)
-			} else {
-				h.httpPostHandle(endpointHandle, userData)(w, request)
-			}
-			return
-		}
-		h.httpPostHandle(endpointHandle, nil)(w, request)
-	}
-}
-
-func (h HTTP) httpPostHandle(endpointHandle HTTPHandle, userData interface{}) router.Handle {
-	return func(w http.ResponseWriter, r router.Request) {
-		request := Request{
-			HTTP:       r.HTTP,
-			Parameters: r.Parameters,
-			UserData:   userData,
-			writer:     w,
-		}
-		start := time.Now()
-		response := endpointHandle(request, Writer{w})
-		elapsed := time.Since(start)
-
-		if response.Reader != nil {
-			defer response.Reader.Close()
-		}
-
-		// Return a HTTP range response only if:
-		// 1. A range was actually requested by the client
-		// 2. The reader implemented Seek
-		// 3. The response was either default or 200
-		ranges := router.ParseRangeHeader(r.HTTP.Header.Get("range"))
-		_, canSeek := response.Reader.(io.ReadSeekCloser)
-		if len(ranges) > 0 && (response.Status == 0 || response.Status == 200) && !h.server.Options.IgnoreHTTPRangeRequests && canSeek {
-			router.ServeHTTPRange(router.ServeHTTPRangeOptions{
-				Headers:     response.Headers,
-				Ranges:      ranges,
-				Reader:      response.Reader.(io.ReadSeekCloser),
-				TotalLength: response.ContentLength,
-				MIMEType:    response.ContentType,
-				Writer:      w,
-			})
-			log.PWrite(h.server.Options.RequestLogLevel, "HTTP Request", map[string]interface{}{
-				"remote_addr": getRealIP(r.HTTP),
-				"method":      r.HTTP.Method,
-				"url":         r.HTTP.URL,
-				"elapsed":     elapsed.String(),
-				"status":      response.Status,
-				"range":       true,
-			})
-			return
-		}
-		if canSeek && !h.server.Options.IgnoreHTTPRangeRequests {
-			w.Header().Set("Accept-Ranges", "bytes")
-		}
-
-		if len(response.ContentType) == 0 {
-			w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		} else {
-			w.Header().Set("Content-Type", response.ContentType)
-		}
-
-		if response.ContentLength > 0 {
-			w.Header().Set("Content-Length", fmt.Sprintf("%d", response.ContentLength))
-		}
-
-		for k, v := range response.Headers {
-			w.Header().Set(k, v)
-		}
-
-		code := 200
-		if response.Status != 0 {
-			code = response.Status
-		}
-		log.PWrite(h.server.Options.RequestLogLevel, "HTTP Request", map[string]interface{}{
-			"remote_addr": getRealIP(r.HTTP),
-			"method":      r.HTTP.Method,
-			"url":         r.HTTP.URL,
-			"elapsed":     elapsed.String(),
-			"status":      code,
-		})
-		w.WriteHeader(code)
-
-		if r.HTTP.Method != "HEAD" && response.Reader != nil {
-			_, err := io.CopyBuffer(w, response.Reader, nil)
-			if err != nil {
-				log.PError("Error writing response", map[string]interface{}{
-					"method": r.HTTP.Method,
-					"url":    r.HTTP.URL,
-					"error":  err.Error(),
-				})
 				return
 			}
 		}
+		start := time.Now()
+		endpointHandle(w, Request{
+			HTTP:       request.HTTP,
+			Parameters: request.Parameters,
+			UserData:   userData,
+		})
+		elapsed := time.Since(start)
+		log.PWrite(h.server.Options.RequestLogLevel, "HTTP Request", map[string]interface{}{
+			"remote_addr": getRealIP(request.HTTP),
+			"method":      request.HTTP.Method,
+			"url":         request.HTTP.URL,
+			"elapsed":     elapsed.String(),
+		})
 	}
 }

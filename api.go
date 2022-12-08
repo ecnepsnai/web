@@ -113,11 +113,19 @@ func (a API) apiPostHandle(endpointHandle APIHandle, userData interface{}) route
 			HTTP:       r.HTTP,
 			Parameters: r.Parameters,
 			UserData:   userData,
-			writer:     w,
 		}
 
 		start := time.Now()
-		data, err := endpointHandle(request)
+		data, resp, err := endpointHandle(request)
+		if resp != nil {
+			for key, value := range resp.Headers {
+				w.Header().Set(key, value)
+			}
+			for _, cookie := range resp.Cookies {
+				http.SetCookie(w, &cookie)
+			}
+		}
+
 		elapsed := time.Since(start)
 		if err != nil {
 			response.Code = err.Code

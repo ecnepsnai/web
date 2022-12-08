@@ -1,6 +1,17 @@
 package web
 
-import "io"
+import (
+	"io"
+	"net/http"
+)
+
+// APIResponse describes additional response properties for API handles
+type APIResponse struct {
+	// Additional headers to append to the response.
+	Headers map[string]string
+	// Cookies to set on the response.
+	Cookies []http.Cookie
+}
 
 // JSONResponse describes an API response object
 type JSONResponse struct {
@@ -14,16 +25,18 @@ type JSONResponse struct {
 
 // HTTPResponse describes a HTTP response
 type HTTPResponse struct {
-	// Reader the reader for the response. Will be closed when the HTTP response is finished. Can be nil.
+	// The reader for the response. Will be closed when the HTTP response is finished. Can be nil.
 	//
 	// If a io.ReadSeekCloser is provided then ranged data may be provided for a HTTP range request.
 	Reader io.ReadCloser
-	// Status the status code for the response. If 0 then 200 is implied.
+	// The status code for the response. If 0 then 200 is implied.
 	Status int
-	// Headers any additional headers to append to the response.
+	// Additional headers to append to the response.
 	Headers map[string]string
-	// ContentType the content type of the response. Will overwrite any 'content-type' header in Headers.
+	// Cookies to set on the response.
+	Cookies []http.Cookie
+	// The content type of the response. Will overwrite any 'content-type' header in Headers.
 	ContentType string
-	// ContentLength the length of the content.
+	// The length of the content.
 	ContentLength uint64
 }

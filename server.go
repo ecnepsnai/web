@@ -17,9 +17,16 @@ type Server struct {
 	BindAddress string
 	// The port that this server is listening on. Only populated if the server was created with web.New().
 	ListenPort uint16
-	// The API instance that is used to register JSON endpoints.
+	// The JSON API server. API handles return data or an error, and all responses are wrapped in a common
+	// response object.
 	API API
-	// The HTTP instance that is used to register plain HTTP endpoints.
+	// HTTPEasy describes a easy HTTP server. HTTPEasy handles are expected to return a reader and specify the content
+	// type and length themselves.
+	//
+	// The HTTPEasy server supports HTTP range requests, should the client request it and the application provide a
+	// supported Reader (io.ReadSeekCloser).
+	HTTPEasy HTTPEasy
+	// The HTTP server. HTTP handles are exposed to the raw http request and response writers.
 	HTTP HTTP
 	// The handler called when a request that does not match a registered path occurs. Defaults to a plain
 	// HTTP 404 with "Not found" as the body.
@@ -69,6 +76,9 @@ func New(bindAddress string) *Server {
 	server.API = API{
 		server: &server,
 	}
+	server.HTTPEasy = HTTPEasy{
+		server: &server,
+	}
 	server.HTTP = HTTP{
 		server: &server,
 	}
@@ -92,6 +102,9 @@ func NewListener(listener net.Listener) *Server {
 	httpRouter.SetNotFoundHandle(server.notFoundHandle)
 	httpRouter.SetMethodNotAllowedHandle(server.methodNotAllowedHandle)
 	server.API = API{
+		server: &server,
+	}
+	server.HTTPEasy = HTTPEasy{
 		server: &server,
 	}
 	server.HTTP = HTTP{

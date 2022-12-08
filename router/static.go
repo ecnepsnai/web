@@ -25,11 +25,6 @@ var IndexFileName = "index.html"
 var GenerateDirectoryListing = true
 
 func (s *impl) serveStatic(dir, url string, w http.ResponseWriter, req *http.Request) {
-	if req.Method != "GET" && req.Method != "HEAD" {
-		s.MethodNotAllowedHandle(w, req)
-		return
-	}
-
 	requestPath := stripPath(url)
 	shouldRenderDirectoryListing := false
 	if requestPath == "" || strings.HasSuffix(requestPath, "/") {
@@ -137,6 +132,8 @@ type ServeHTTPRangeOptions struct {
 	// Any additional headers to append to the request.
 	// Do not specify a content-type here, instead use the MIMEType property.
 	Headers map[string]string
+	// Cookies to set on the response
+	Cookies []http.Cookie
 	// Byte ranges from the HTTP request
 	Ranges []ByteRange
 	// The incoming reader, must support seeking
@@ -214,6 +211,9 @@ func serveHTTPRangeMulti(options ServeHTTPRangeOptions) error {
 	options.Writer.Header().Set("Content-Type", fmt.Sprintf("multipart/byteranges; boundary=%s", mp.Boundary()))
 	for k, v := range options.Headers {
 		options.Writer.Header().Add(k, v)
+	}
+	for _, cookie := range options.Cookies {
+		http.SetCookie(options.Writer, &cookie)
 	}
 	options.Writer.Header().Set("Date", timeToHTTPDate(time.Now().UTC()))
 	options.Writer.WriteHeader(206)

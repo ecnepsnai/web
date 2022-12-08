@@ -2,12 +2,8 @@ package web_test
 
 import (
 	"bytes"
-	"crypto/rand"
-	"encoding/hex"
 	"fmt"
 	"io"
-	"mime"
-	"mime/multipart"
 	"net/http"
 	"os"
 	"path"
@@ -21,14 +17,13 @@ func TestHTTPAddRoutes(t *testing.T) {
 	t.Parallel()
 	server := newServer()
 
-	handle := func(request web.Request, writer web.Writer) web.HTTPResponse {
-		return web.HTTPResponse{}
+	handle := func(w http.ResponseWriter, r web.Request) {
+		w.WriteHeader(200)
 	}
 	options := web.HandleOptions{}
 
 	server.HTTP.GET("/"+randomString(5), handle, options)
 	server.HTTP.HEAD("/"+randomString(5), handle, options)
-	server.HTTP.GETHEAD("/"+randomString(5), handle, options)
 	server.HTTP.OPTIONS("/"+randomString(5), handle, options)
 	server.HTTP.POST("/"+randomString(5), handle, options)
 	server.HTTP.PUT("/"+randomString(5), handle, options)
@@ -40,8 +35,8 @@ func TestHTTPAuthenticated(t *testing.T) {
 	t.Parallel()
 	server := newServer()
 
-	handle := func(request web.Request, writer web.Writer) web.HTTPResponse {
-		return web.HTTPResponse{}
+	handle := func(w http.ResponseWriter, r web.Request) {
+		w.WriteHeader(200)
 	}
 	authenticate := func(request *http.Request) interface{} {
 		return 1
@@ -74,8 +69,8 @@ func TestHTTPUnauthenticated(t *testing.T) {
 	t.Parallel()
 	server := newServer()
 
-	handle := func(request web.Request, writer web.Writer) web.HTTPResponse {
-		return web.HTTPResponse{}
+	handle := func(w http.ResponseWriter, r web.Request) {
+		w.WriteHeader(200)
 	}
 	authenticate := func(request *http.Request) interface{} {
 		return nil
@@ -129,8 +124,8 @@ func TestHTTPMethodNotAllowed(t *testing.T) {
 	t.Parallel()
 	server := newServer()
 
-	handle := func(request web.Request, writer web.Writer) web.HTTPResponse {
-		return web.HTTPResponse{}
+	handle := func(w http.ResponseWriter, r web.Request) {
+		w.WriteHeader(200)
 	}
 	authenticate := func(request *http.Request) interface{} {
 		return nil
@@ -163,10 +158,8 @@ func TestHTTPHandleError(t *testing.T) {
 	t.Parallel()
 	server := newServer()
 
-	handle := func(request web.Request, writer web.Writer) web.HTTPResponse {
-		return web.HTTPResponse{
-			Status: 403,
-		}
+	handle := func(w http.ResponseWriter, r web.Request) {
+		w.WriteHeader(403)
 	}
 	authenticate := func(request *http.Request) interface{} {
 		return 1
@@ -207,14 +200,13 @@ func TestHTTPResponse(t *testing.T) {
 		t.Fatalf("Error making temporary file: %s", err.Error())
 	}
 
-	handle := func(request web.Request, writer web.Writer) web.HTTPResponse {
+	handle := func(w http.ResponseWriter, r web.Request) {
 		f, err := os.Open(path.Join(tmp, name))
 		if err != nil {
 			t.Fatalf("Error opening temporary file: %s", err.Error())
 		}
-		return web.HTTPResponse{
-			Reader: f,
-		}
+		defer f.Close()
+		io.Copy(w, f)
 	}
 	options := web.HandleOptions{}
 
@@ -243,10 +235,9 @@ func TestHTTPContentType(t *testing.T) {
 	server := newServer()
 
 	contentType := "application/amazing"
-	handle := func(request web.Request, writer web.Writer) web.HTTPResponse {
-		return web.HTTPResponse{
-			ContentType: contentType,
-		}
+	handle := func(w http.ResponseWriter, r web.Request) {
+		w.Header().Set("Content-Type", contentType)
+		w.WriteHeader(200)
 	}
 	options := web.HandleOptions{}
 
@@ -275,12 +266,9 @@ func TestHTTPHeaders(t *testing.T) {
 
 	headerKey := randomString(5)
 	headerValue := randomString(5)
-	handle := func(request web.Request, writer web.Writer) web.HTTPResponse {
-		return web.HTTPResponse{
-			Headers: map[string]string{
-				headerKey: headerValue,
-			},
-		}
+	handle := func(w http.ResponseWriter, r web.Request) {
+		w.Header().Set(headerKey, headerValue)
+		w.WriteHeader(200)
 	}
 	options := web.HandleOptions{}
 
@@ -303,42 +291,12 @@ func TestHTTPHeaders(t *testing.T) {
 	}
 }
 
-func TestServeFile(t *testing.T) {
-	t.Parallel()
-	server := newServer()
-
-	tmp := t.TempDir()
-	data := randomString(5)
-	name := randomString(5) + ".html"
-
-	if err := os.WriteFile(path.Join(tmp, name), []byte(data), 0644); err != nil {
-		t.Fatalf("Error making temporary file: %s", err.Error())
-	}
-
-	server.HTTP.Static("/", tmp)
-
-	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/%s", server.ListenPort, name))
-	if err != nil {
-		t.Fatalf("Network error: %s", err.Error())
-	}
-	if resp == nil {
-		t.Fatalf("Nil response returned")
-	}
-	if resp.StatusCode != 200 {
-		t.Fatalf("Unexpected HTTP status code. Expected %d got %d", 200, resp.StatusCode)
-	}
-	_, err = io.ReadAll(resp.Body)
-	if err != nil {
-		t.Fatalf("Error reading response body: %s", err.Error())
-	}
-}
-
 func TestHTTPUnauthorizedMethod(t *testing.T) {
 	t.Parallel()
 	server := newServer()
 
-	handle := func(request web.Request, writer web.Writer) web.HTTPResponse {
-		return web.HTTPResponse{}
+	handle := func(w http.ResponseWriter, r web.Request) {
+		w.WriteHeader(200)
 	}
 	authenticate := func(request *http.Request) interface{} {
 		return nil
@@ -378,8 +336,8 @@ func TestHTTPLargeBody(t *testing.T) {
 	t.Parallel()
 	server := newServer()
 
-	handle := func(request web.Request, writer web.Writer) web.HTTPResponse {
-		return web.HTTPResponse{}
+	handle := func(w http.ResponseWriter, r web.Request) {
+		w.WriteHeader(200)
 	}
 	options := web.HandleOptions{
 		MaxBodyLength: 10,
@@ -410,8 +368,8 @@ func TestHTTPRateLimit(t *testing.T) {
 	t.Parallel()
 	server := newServer()
 
-	handle := func(request web.Request, writer web.Writer) web.HTTPResponse {
-		return web.HTTPResponse{}
+	handle := func(w http.ResponseWriter, r web.Request) {
+		w.WriteHeader(200)
 	}
 	options := web.HandleOptions{}
 
@@ -447,146 +405,4 @@ func TestHTTPRateLimit(t *testing.T) {
 	doTest(200)
 	doTest(200)
 	doTest(429)
-}
-
-func TestHTTPGETHEAD(t *testing.T) {
-	t.Parallel()
-	server := newServer()
-
-	handle := func(request web.Request, writer web.Writer) web.HTTPResponse {
-		data := []byte("Hello, world!")
-		return web.HTTPResponse{
-			Reader:        io.NopCloser(bytes.NewReader(data)),
-			ContentType:   "text/plain",
-			ContentLength: uint64(len(data)),
-		}
-	}
-
-	path := randomString(5)
-
-	server.HTTP.GETHEAD("/"+path, handle, web.HandleOptions{})
-
-	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/%s", server.ListenPort, path))
-	if err != nil {
-		t.Fatalf("Network error: %s", err.Error())
-	}
-	if resp == nil {
-		t.Fatalf("Nil response returned")
-	}
-	if resp.StatusCode != 200 {
-		t.Fatalf("Unexpected HTTP status code. Expected %d got %d", 200, resp.StatusCode)
-	}
-	data, err := io.ReadAll(resp.Body)
-	if err != nil {
-		t.Fatalf("Error reading response body: %s", err.Error())
-	}
-	if len(data) == 0 {
-		t.Fatalf("No data returned when expected")
-	}
-	data = nil
-
-	resp, err = http.Head(fmt.Sprintf("http://localhost:%d/%s", server.ListenPort, path))
-	if err != nil {
-		t.Fatalf("Network error: %s", err.Error())
-	}
-	if resp == nil {
-		t.Fatalf("Nil response returned")
-	}
-	if resp.StatusCode != 200 {
-		t.Fatalf("Unexpected HTTP status code. Expected %d got %d", 200, resp.StatusCode)
-	}
-	data, _ = io.ReadAll(resp.Body)
-	if len(data) > 0 {
-		t.Fatalf("Data returned when none expected: %s", data)
-	}
-}
-
-type nopSeekCloser struct{ io.ReadSeeker }
-
-func (nopSeekCloser) Close() error { return nil }
-
-func TestHTTPRangeGet(t *testing.T) {
-	t.Parallel()
-	server := newServer()
-
-	rawData := make([]byte, 250)
-	randomData := make([]byte, 500)
-	rand.Read(rawData)
-	hex.Encode(randomData, rawData)
-	reader := nopSeekCloser{bytes.NewReader(randomData)}
-	if len(randomData) != 500 {
-		panic("Not enough random data?")
-	}
-
-	handle := func(request web.Request, writer web.Writer) web.HTTPResponse {
-		return web.HTTPResponse{
-			Reader:        reader,
-			ContentType:   "text/plain",
-			ContentLength: 500,
-		}
-	}
-
-	path := randomString(5)
-
-	server.HTTP.GETHEAD("/"+path, handle, web.HandleOptions{})
-
-	url := fmt.Sprintf("http://localhost:%d/%s", server.ListenPort, path)
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		panic(err)
-	}
-	req.Header.Set("range", "bytes=0-99,200-300,400-")
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		panic(err)
-	}
-	if resp.StatusCode != 206 {
-		t.Fatalf("Unexpected status code for URL '%s'. Expected %d got %d", url, 206, resp.StatusCode)
-	}
-
-	_, params, err := mime.ParseMediaType(resp.Header.Get("Content-Type"))
-	if err != nil {
-		panic(err)
-	}
-	r := multipart.NewReader(resp.Body, params["boundary"])
-	i := 0
-
-	ranges := []string{
-		"bytes 0-99/500",
-		"bytes 200-300/500",
-		"bytes 400-499/500",
-	}
-
-	data := [][]byte{
-		randomData[0:100],
-		randomData[200:301],
-		randomData[400:],
-	}
-
-	for {
-		part, err := r.NextPart()
-		if err == io.EOF {
-			break
-		}
-		if i > 2 {
-			t.Fatalf("Unpexted number of unit parts in response. Expected 3 but got at least %d", i+1)
-		}
-		contentType := part.Header.Get("Content-Type")
-		contentRange := part.Header.Get("Content-Range")
-		if contentType != "text/plain" {
-			t.Errorf("Unexpected content type in unit part %d. Expected %s got %s", i+1, "text/plain", contentType)
-		}
-		if contentRange != ranges[i] {
-			t.Errorf("Unexpected content range in unit part %d. Expected %s got %s", i+1, ranges[i], contentRange)
-		}
-		partData, err := io.ReadAll(part)
-		if err != nil {
-			panic(err)
-		}
-		if !bytes.Equal(partData, data[i]) {
-			t.Errorf("Unexpected data in unit part %d.\nExpected:\n\t%s\nGot:\n\t%s", i+1, data[i], partData)
-		}
-		i++
-	}
 }

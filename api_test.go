@@ -19,8 +19,8 @@ func TestAPIAddRoutes(t *testing.T) {
 	t.Parallel()
 	server := newServer()
 
-	handle := func(request web.Request) (interface{}, *web.Error) {
-		return true, nil
+	handle := func(request web.Request) (interface{}, *web.APIResponse, *web.Error) {
+		return true, nil, nil
 	}
 	options := web.HandleOptions{}
 
@@ -38,8 +38,8 @@ func TestAPIAuthenticated(t *testing.T) {
 	t.Parallel()
 	server := newServer()
 
-	handle := func(request web.Request) (interface{}, *web.Error) {
-		return true, nil
+	handle := func(request web.Request) (interface{}, *web.APIResponse, *web.Error) {
+		return true, nil, nil
 	}
 	authenticate := func(request *http.Request) interface{} {
 		return 1
@@ -69,8 +69,8 @@ func TestAPIUnauthenticated(t *testing.T) {
 	t.Parallel()
 	server := newServer()
 
-	handle := func(request web.Request) (interface{}, *web.Error) {
-		return true, nil
+	handle := func(request web.Request) (interface{}, *web.APIResponse, *web.Error) {
+		return true, nil, nil
 	}
 	authenticate := func(request *http.Request) interface{} {
 		var object *string
@@ -125,8 +125,8 @@ func TestAPIMethodNotAllowed(t *testing.T) {
 	t.Parallel()
 	server := newServer()
 
-	handle := func(request web.Request) (interface{}, *web.Error) {
-		return true, nil
+	handle := func(request web.Request) (interface{}, *web.APIResponse, *web.Error) {
+		return true, nil, nil
 	}
 	authenticate := func(request *http.Request) interface{} {
 		return nil
@@ -159,8 +159,8 @@ func TestAPIHandleError(t *testing.T) {
 	t.Parallel()
 	server := newServer()
 
-	handle := func(request web.Request) (interface{}, *web.Error) {
-		return nil, web.ValidationError("error")
+	handle := func(request web.Request) (interface{}, *web.APIResponse, *web.Error) {
+		return nil, nil, web.ValidationError("error")
 	}
 	authenticate := func(request *http.Request) interface{} {
 		return 1
@@ -193,8 +193,8 @@ func TestAPIUnauthorizedMethod(t *testing.T) {
 	t.Parallel()
 	server := newServer()
 
-	handle := func(request web.Request) (interface{}, *web.Error) {
-		return true, nil
+	handle := func(request web.Request) (interface{}, *web.APIResponse, *web.Error) {
+		return true, nil, nil
 	}
 	authenticate := func(request *http.Request) interface{} {
 		return nil
@@ -234,8 +234,8 @@ func TestAPILargeBody(t *testing.T) {
 	t.Parallel()
 	server := newServer()
 
-	handle := func(request web.Request) (interface{}, *web.Error) {
-		return true, nil
+	handle := func(request web.Request) (interface{}, *web.APIResponse, *web.Error) {
+		return true, nil, nil
 	}
 	options := web.HandleOptions{
 		MaxBodyLength: 10,
@@ -266,7 +266,7 @@ func TestAPIValidJSON(t *testing.T) {
 	t.Parallel()
 	server := newServer()
 
-	handle := func(request web.Request) (interface{}, *web.Error) {
+	handle := func(request web.Request) (interface{}, *web.APIResponse, *web.Error) {
 		type exampleType struct {
 			Foo string
 			Bar string
@@ -274,9 +274,9 @@ func TestAPIValidJSON(t *testing.T) {
 
 		example := exampleType{}
 		if err := request.DecodeJSON(&example); err != nil {
-			return nil, web.CommonErrors.BadRequest
+			return nil, nil, web.CommonErrors.BadRequest
 		}
-		return true, nil
+		return true, nil, nil
 	}
 	options := web.HandleOptions{
 		AuthenticateMethod: func(request *http.Request) interface{} {
@@ -309,7 +309,7 @@ func TestAPIInvalidJSON(t *testing.T) {
 	t.Parallel()
 	server := newServer()
 
-	handle := func(request web.Request) (interface{}, *web.Error) {
+	handle := func(request web.Request) (interface{}, *web.APIResponse, *web.Error) {
 		type exampleType struct {
 			Foo string
 			Bar string
@@ -317,9 +317,9 @@ func TestAPIInvalidJSON(t *testing.T) {
 
 		example := exampleType{}
 		if err := request.DecodeJSON(&example); err != nil {
-			return nil, web.CommonErrors.BadRequest
+			return nil, nil, web.CommonErrors.BadRequest
 		}
-		return true, nil
+		return true, nil, nil
 	}
 	options := web.HandleOptions{}
 
@@ -348,8 +348,8 @@ func TestAPIRateLimit(t *testing.T) {
 	t.Parallel()
 	server := newServer()
 
-	handle := func(request web.Request) (interface{}, *web.Error) {
-		return true, nil
+	handle := func(request web.Request) (interface{}, *web.APIResponse, *web.Error) {
+		return true, nil, nil
 	}
 	options := web.HandleOptions{}
 
@@ -387,19 +387,25 @@ func TestAPIRateLimit(t *testing.T) {
 	doTest(429)
 }
 
-func TestAPICookie(t *testing.T) {
+func TestAPIResponse(t *testing.T) {
 	t.Parallel()
 	server := newServer()
 
+	headerName := randomString(6)
+	headerValue := randomString(6)
 	cookieName := randomString(6)
 	cookieValue := randomString(6)
 
-	handle := func(request web.Request) (interface{}, *web.Error) {
-		request.AddCookie(&http.Cookie{
-			Name:  cookieName,
-			Value: cookieValue,
-		})
-		return true, nil
+	handle := func(request web.Request) (interface{}, *web.APIResponse, *web.Error) {
+		return true, &web.APIResponse{
+			Headers: map[string]string{
+				headerName: headerValue,
+			},
+			Cookies: []http.Cookie{{
+				Name:  cookieName,
+				Value: cookieValue,
+			}},
+		}, nil
 	}
 	options := web.HandleOptions{}
 	path := randomString(5)
@@ -414,6 +420,10 @@ func TestAPICookie(t *testing.T) {
 	}
 	if resp.StatusCode != 200 {
 		t.Fatalf("Unexpected HTTP status code. Expected %d got %d", 200, resp.StatusCode)
+	}
+
+	if resp.Header.Get(headerName) != headerValue {
+		t.Fatalf("Unexpected HTTP header. Expected %s got %s", headerValue, resp.Header.Get(headerName))
 	}
 
 	cookies := resp.Cookies()
@@ -444,8 +454,8 @@ func TestAPILogLevel(t *testing.T) {
 
 	server := newServer()
 
-	handle := func(request web.Request) (interface{}, *web.Error) {
-		return true, nil
+	handle := func(request web.Request) (interface{}, *web.APIResponse, *web.Error) {
+		return true, nil, nil
 	}
 	options := web.HandleOptions{}
 
