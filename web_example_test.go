@@ -117,7 +117,7 @@ func Example_websocket() {
 		Reply string
 	}
 
-	handle := func(request web.Request, conn web.WSConn) {
+	handle := func(request web.Request, conn *web.WSConn) {
 		question := questionType{}
 		if err := conn.ReadJSON(&question); err != nil {
 			return

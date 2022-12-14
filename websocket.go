@@ -10,6 +10,11 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+// WSConn describes a websocket connection.
+type WSConn struct {
+	websocket.Conn
+}
+
 // Socket register a new websocket server at the given path
 func (s *Server) Socket(path string, handle SocketHandle, options HandleOptions) {
 	s.registerSocketEndpoint("GET", path, handle, options)
@@ -78,8 +83,8 @@ func (s *Server) socketHandler(endpointHandle SocketHandle, options HandleOption
 		endpointHandle(Request{
 			Parameters: r.Parameters,
 			UserData:   userData,
-		}, WSConn{
-			c: conn,
+		}, &WSConn{
+			*conn,
 		})
 		log.PWrite(s.Options.RequestLogLevel, "Websocket request", map[string]interface{}{
 			"method":      r.HTTP.Method,

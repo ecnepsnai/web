@@ -29,7 +29,7 @@ func TestWebsocketAuthenticated(t *testing.T) {
 		Greeting string `json:"greeting"`
 	}
 
-	server.Socket("/socket", func(request web.Request, conn web.WSConn) {
+	server.Socket("/socket", func(request web.Request, conn *web.WSConn) {
 		defer conn.Close()
 
 		question := questionType{}
@@ -79,7 +79,7 @@ func TestWebsocketUnauthenticated(t *testing.T) {
 		AuthenticateMethod: authenticate,
 	}
 
-	server.Socket("/socket", func(request web.Request, conn web.WSConn) {
+	server.Socket("/socket", func(request web.Request, conn *web.WSConn) {
 		conn.Close()
 	}, options)
 
@@ -101,7 +101,7 @@ func TestWebsocketPanic(t *testing.T) {
 
 	options := web.HandleOptions{}
 
-	server.Socket("/socket", func(request web.Request, conn web.WSConn) {
+	server.Socket("/socket", func(request web.Request, conn *web.WSConn) {
 		panic("Oh no!")
 	}, options)
 

@@ -15,7 +15,7 @@ type HTTPEasyHandle func(request Request) HTTPResponse
 type HTTPHandle func(w http.ResponseWriter, r Request)
 
 // SocketHandle describes a method signature for handling a HTTP websocket request
-type SocketHandle func(request Request, conn WSConn)
+type SocketHandle func(request Request, conn *WSConn)
 
 // HandleOptions describes options for a route
 type HandleOptions struct {
