@@ -116,6 +116,14 @@ func (a API) apiPostHandle(endpointHandle APIHandle, userData interface{}) route
 		}
 
 		start := time.Now()
+		defer func() {
+			if r := recover(); r != nil {
+				log.Error("Recovered from panic during API handle: %s", r)
+				w.WriteHeader(500)
+				json.NewEncoder(w).Encode(JSONResponse{Error: CommonErrors.ServerError, Code: 500})
+			}
+		}()
+
 		data, resp, err := endpointHandle(request)
 		if resp != nil {
 			for key, value := range resp.Headers {

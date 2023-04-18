@@ -2,6 +2,7 @@ package web_test
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -186,6 +187,41 @@ func TestAPIHandleError(t *testing.T) {
 	_, err = io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatalf("Error reading response body: %s", err.Error())
+	}
+}
+
+func TestAPIHandlePanic(t *testing.T) {
+	t.Parallel()
+	server := newServer()
+
+	handle := func(request web.Request) (interface{}, *web.APIResponse, *web.Error) {
+		panic("oh no!")
+	}
+	authenticate := func(request *http.Request) interface{} {
+		return 1
+	}
+	options := web.HandleOptions{
+		AuthenticateMethod: authenticate,
+	}
+
+	path := randomString(5)
+
+	server.API.GET("/"+path, handle, options)
+
+	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/%s", server.ListenPort, path))
+	if err != nil {
+		t.Fatalf("Network error: %s", err.Error())
+	}
+	if resp == nil {
+		t.Fatalf("Nil response returned")
+	}
+	if resp.StatusCode != 500 {
+		t.Fatalf("Unexpected HTTP status code. Expected %d got %d", 500, resp.StatusCode)
+	}
+	data := web.JSONResponse{}
+	json.NewDecoder(resp.Body).Decode(&data)
+	if data.Error == nil {
+		t.Fatalf("No error in response body when one expected")
 	}
 }
 

@@ -20,6 +20,8 @@ type JSONResponse struct {
 	// If an error occured, details about the error
 	Error *Error `json:"error,omitempty"`
 	// The HTTP status code for the response
+	//
+	// Deprecated: will be removed in the next breaking update
 	Code int `json:"code"`
 }
 
