@@ -34,6 +34,10 @@ func TestMock(t *testing.T) {
 		return nil, nil
 	}
 
-	request := web.MockRequest(userData, map[string]string{"foo": "bar"}, exampleType{true})
+	request := web.MockRequest(web.MockRequestParameters{
+		UserData:   userData,
+		Parameters: map[string]string{"foo": "bar"},
+		JSONBody:   exampleType{true},
+	})
 	handle(request)
 }
