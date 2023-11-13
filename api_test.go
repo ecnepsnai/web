@@ -536,3 +536,65 @@ func TestAPILogLevel(t *testing.T) {
 		}
 	}
 }
+
+func TestAPIHandleNoLog(t *testing.T) {
+	logtic.Log.Reset()
+	logFilePath := path.Join(t.TempDir(), "web.log")
+	logtic.Log.FilePath = logFilePath
+
+	stdout := &bytes.Buffer{}
+	logtic.Log.Stdout = stdout
+	logtic.Log.Stderr = stdout
+
+	logtic.Log.Level = logtic.LevelDebug
+	logtic.Log.Open()
+	defer logtic.Log.Close()
+
+	server := newServer()
+
+	handle := func(request web.Request) (interface{}, *web.APIResponse, *web.Error) {
+		return true, nil, nil
+	}
+
+	path1 := randomString(5)
+	path2 := randomString(5)
+
+	server.API.GET("/"+path1, handle, web.HandleOptions{})
+	server.API.GET("/"+path2, handle, web.HandleOptions{DontLogRequests: true})
+
+	http.Get(fmt.Sprintf("http://localhost:%d/%s", server.ListenPort, path1))
+	http.Get(fmt.Sprintf("http://localhost:%d/%s", server.ListenPort, path2))
+
+	logtic.Log.Close()
+	path1Pattern := regexp.MustCompile(`[0-9\-:TZ]+ \[DEBUG\]\[HTTP\] API Request: elapsed='[^']+' method='GET' remote_addr='[^']+' status=200 url='/` + path1 + `'`)
+	path2Pattern := regexp.MustCompile(`[0-9\-:TZ]+ \[DEBUG\]\[HTTP\] API Request: elapsed='[^']+' method='GET' remote_addr='[^']+' status=200 url='/` + path2 + `'`)
+	f, err := os.OpenFile(logFilePath, os.O_RDONLY, 0644)
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+
+	logFileData, err := io.ReadAll(f)
+	if err != nil {
+		panic(err)
+	}
+
+	if !path1Pattern.Match(logFileData) {
+		t.Errorf("Did not find expected log line for API request\n----\n%s\n----", logFileData)
+	}
+	if path2Pattern.Match(logFileData) {
+		t.Errorf("Did not find expected log line for API request\n----\n%s\n----", logFileData)
+	}
+
+	if stdout.Len() == 0 {
+		t.Errorf("Did not find expected log line in stdout for API request")
+	}
+
+	logtic.Log.Reset()
+	for _, arg := range os.Args {
+		if arg == "-test.v=true" {
+			logtic.Log.Level = logtic.LevelDebug
+			logtic.Log.Open()
+		}
+	}
+}

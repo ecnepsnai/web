@@ -132,15 +132,15 @@ func (h HTTPEasy) httpPreHandle(endpointHandle HTTPEasyHandle, options HandleOpt
 
 				options.UnauthorizedMethod(w, request.HTTP)
 			} else {
-				h.httpPostHandle(endpointHandle, userData)(w, request)
+				h.httpPostHandle(endpointHandle, userData, options)(w, request)
 			}
 			return
 		}
-		h.httpPostHandle(endpointHandle, nil)(w, request)
+		h.httpPostHandle(endpointHandle, nil, options)(w, request)
 	}
 }
 
-func (h HTTPEasy) httpPostHandle(endpointHandle HTTPEasyHandle, userData interface{}) router.Handle {
+func (h HTTPEasy) httpPostHandle(endpointHandle HTTPEasyHandle, userData interface{}, options HandleOptions) router.Handle {
 	return func(w http.ResponseWriter, r router.Request) {
 		request := Request{
 			HTTP:       r.HTTP,
@@ -206,13 +206,15 @@ func (h HTTPEasy) httpPostHandle(endpointHandle HTTPEasyHandle, userData interfa
 		if response.Status != 0 {
 			code = response.Status
 		}
-		log.PWrite(h.server.Options.RequestLogLevel, "HTTP Request", map[string]interface{}{
-			"remote_addr": getRealIP(r.HTTP),
-			"method":      r.HTTP.Method,
-			"url":         r.HTTP.URL,
-			"elapsed":     elapsed.String(),
-			"status":      code,
-		})
+		if !options.DontLogRequests {
+			log.PWrite(h.server.Options.RequestLogLevel, "HTTP Request", map[string]interface{}{
+				"remote_addr": getRealIP(r.HTTP),
+				"method":      r.HTTP.Method,
+				"url":         r.HTTP.URL,
+				"elapsed":     elapsed.String(),
+				"status":      code,
+			})
+		}
 		w.WriteHeader(code)
 
 		if r.HTTP.Method != "HEAD" && response.Reader != nil {

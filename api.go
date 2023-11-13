@@ -96,15 +96,15 @@ func (a API) apiPreHandle(endpointHandle APIHandle, options HandleOptions) route
 
 				options.UnauthorizedMethod(w, request.HTTP)
 			} else {
-				a.apiPostHandle(endpointHandle, userData)(w, request)
+				a.apiPostHandle(endpointHandle, userData, options)(w, request)
 			}
 			return
 		}
-		a.apiPostHandle(endpointHandle, nil)(w, request)
+		a.apiPostHandle(endpointHandle, nil, options)(w, request)
 	}
 }
 
-func (a API) apiPostHandle(endpointHandle APIHandle, userData interface{}) router.Handle {
+func (a API) apiPostHandle(endpointHandle APIHandle, userData interface{}, options HandleOptions) router.Handle {
 	return func(w http.ResponseWriter, r router.Request) {
 		w.Header().Set("Content-Type", "application/json")
 
@@ -143,13 +143,15 @@ func (a API) apiPostHandle(endpointHandle APIHandle, userData interface{}) route
 			response.Code = 200
 			response.Data = data
 		}
-		log.PWrite(a.server.Options.RequestLogLevel, "API Request", map[string]interface{}{
-			"remote_addr": getRealIP(r.HTTP),
-			"method":      r.HTTP.Method,
-			"url":         r.HTTP.URL,
-			"elapsed":     elapsed.String(),
-			"status":      response.Code,
-		})
+		if !options.DontLogRequests {
+			log.PWrite(a.server.Options.RequestLogLevel, "API Request", map[string]interface{}{
+				"remote_addr": getRealIP(r.HTTP),
+				"method":      r.HTTP.Method,
+				"url":         r.HTTP.URL,
+				"elapsed":     elapsed.String(),
+				"status":      response.Code,
+			})
+		}
 		if err := json.NewEncoder(w).Encode(response); err != nil {
 			log.PError("Error writing response", map[string]interface{}{
 				"method": r.HTTP.Method,

@@ -104,11 +104,13 @@ func (h HTTP) httpPreHandle(endpointHandle HTTPHandle, options HandleOptions) ro
 			UserData:   userData,
 		})
 		elapsed := time.Since(start)
-		log.PWrite(h.server.Options.RequestLogLevel, "HTTP Request", map[string]interface{}{
-			"remote_addr": getRealIP(request.HTTP),
-			"method":      request.HTTP.Method,
-			"url":         request.HTTP.URL,
-			"elapsed":     elapsed.String(),
-		})
+		if !options.DontLogRequests {
+			log.PWrite(h.server.Options.RequestLogLevel, "HTTP Request", map[string]interface{}{
+				"remote_addr": getRealIP(request.HTTP),
+				"method":      request.HTTP.Method,
+				"url":         request.HTTP.URL,
+				"elapsed":     elapsed.String(),
+			})
+		}
 	}
 }

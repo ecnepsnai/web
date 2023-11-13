@@ -32,6 +32,8 @@ type HandleOptions struct {
 	// exceed this limit will receive a 413 Payload Too Large response.
 	// The default value of 0 will not reject requests with large bodies.
 	MaxBodyLength uint64
+	// DontLogRequests if true then requests to this handle are not logged
+	DontLogRequests bool
 }
 
 func isUserdataNil(userData interface{}) bool {
