@@ -218,11 +218,11 @@ func (h HTTPEasy) httpPostHandle(endpointHandle HTTPEasyHandle, userData interfa
 		w.WriteHeader(code)
 
 		if r.HTTP.Method != "HEAD" && response.Reader != nil {
-			_, err := io.CopyBuffer(w, response.Reader, nil)
-			if err != nil {
-				log.PError("Error writing response", map[string]interface{}{
+			if copied, err := io.Copy(w, response.Reader); err != nil {
+				log.PError("Error writing response data", map[string]interface{}{
 					"method": r.HTTP.Method,
 					"url":    r.HTTP.URL,
+					"wrote":  copied,
 					"error":  err.Error(),
 				})
 				return
