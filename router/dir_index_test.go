@@ -12,6 +12,7 @@ import (
 func TestDirectoryIndex(t *testing.T) {
 	dir := t.TempDir()
 	os.WriteFile(path.Join(dir, "example.txt"), []byte("foo"), os.ModePerm)
+	os.Mkdir(path.Join(dir, "dir"), 7644)
 
 	listenAddress := getListenAddress()
 
