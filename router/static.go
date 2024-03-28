@@ -44,7 +44,7 @@ func (s *impl) serveStatic(dir, url string, w http.ResponseWriter, req *http.Req
 			return
 		}
 
-		s.makeDirectoryIndex(filePath, requestPath, w, req)
+		s.makeDirectoryIndex(filePath, requestPath, w)
 		return
 	}
 
@@ -166,6 +166,35 @@ func ServeHTTPRange(options ServeHTTPRangeOptions) error {
 	return serveHTTPRangeMulti(options)
 }
 
+func handleRange(reader io.ReadSeeker, writer io.Writer, r ByteRange) error {
+	if r.Start >= 0 {
+		if _, err := reader.Seek(r.Start, 0); err != nil {
+			return err
+		}
+		if r.End >= 0 {
+			// bytes=100-200
+			if _, err := io.CopyN(writer, reader, (r.End-r.Start)+1); err != nil {
+				return err
+			}
+		} else {
+			// bytes=100-
+			if _, err := io.Copy(writer, reader); err != nil {
+				return err
+			}
+		}
+	} else {
+		if _, err := reader.Seek(r.End-(r.End*2), 2); err != nil {
+			return err
+		}
+		// bytes=-100
+		if _, err := io.Copy(writer, reader); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func serveHTTPRangeSingle(options ServeHTTPRangeOptions) error {
 	r := options.Ranges[0]
 
@@ -178,32 +207,7 @@ func serveHTTPRangeSingle(options ServeHTTPRangeOptions) error {
 	options.Writer.Header().Set("Date", timeToHTTPDate(time.Now().UTC()))
 	options.Writer.WriteHeader(206)
 
-	if r.Start >= 0 {
-		if _, err := options.Reader.Seek(r.Start, 0); err != nil {
-			return err
-		}
-		if r.End >= 0 {
-			// bytes=100-200
-			if _, err := io.CopyN(options.Writer, options.Reader, (r.End-r.Start)+1); err != nil {
-				return err
-			}
-		} else {
-			// bytes=100-
-			if _, err := io.Copy(options.Writer, options.Reader); err != nil {
-				return err
-			}
-		}
-	} else {
-		if _, err := options.Reader.Seek(r.End-(r.End*2), 2); err != nil {
-			return err
-		}
-		// bytes=-100
-		if _, err := io.Copy(options.Writer, options.Reader); err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return handleRange(options.Reader, options.Writer, r)
 }
 
 func serveHTTPRangeMulti(options ServeHTTPRangeOptions) error {
@@ -227,29 +231,8 @@ func serveHTTPRangeMulti(options ServeHTTPRangeOptions) error {
 			return err
 		}
 
-		if r.Start >= 0 {
-			if _, err := options.Reader.Seek(r.Start, 0); err != nil {
-				return err
-			}
-			if r.End >= 0 {
-				// bytes=100-200
-				if _, err := io.CopyN(part, options.Reader, (r.End-r.Start)+1); err != nil {
-					return err
-				}
-			} else {
-				// bytes=100-
-				if _, err := io.Copy(part, options.Reader); err != nil {
-					return err
-				}
-			}
-		} else {
-			if _, err := options.Reader.Seek(r.End-(r.End*2), 2); err != nil {
-				return err
-			}
-			// bytes=-100
-			if _, err := io.Copy(part, options.Reader); err != nil {
-				return err
-			}
+		if err := handleRange(options.Reader, part, r); err != nil {
+			return err
 		}
 	}
 

@@ -28,7 +28,7 @@ type dirIndexFileType struct {
 	Size string
 }
 
-func (s *impl) makeDirectoryIndex(dir, requestPath string, w http.ResponseWriter, req *http.Request) {
+func (s *impl) makeDirectoryIndex(dir, requestPath string, w http.ResponseWriter) {
 	s.log.PDebug("Serving directory listing", map[string]interface{}{
 		"request_path":   requestPath,
 		"directory_path": dir,
