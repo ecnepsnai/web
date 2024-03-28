@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/ecnepsnai/web/router"
@@ -153,6 +154,10 @@ func (a API) apiPostHandle(endpointHandle APIHandle, userData interface{}, optio
 			})
 		}
 		if err := json.NewEncoder(w).Encode(response); err != nil {
+			if strings.Contains(err.Error(), "write: broken pipe") {
+				return
+			}
+
 			log.PError("Error writing response", map[string]interface{}{
 				"method": r.HTTP.Method,
 				"url":    r.HTTP.URL,

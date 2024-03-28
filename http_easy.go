@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/ecnepsnai/web/router"
@@ -219,6 +220,10 @@ func (h HTTPEasy) httpPostHandle(endpointHandle HTTPEasyHandle, userData interfa
 
 		if r.HTTP.Method != "HEAD" && response.Reader != nil {
 			if copied, err := io.Copy(w, response.Reader); err != nil {
+				if strings.Contains(err.Error(), "write: broken pipe") {
+					return
+				}
+
 				log.PError("Error writing response data", map[string]interface{}{
 					"method": r.HTTP.Method,
 					"url":    r.HTTP.URL,
