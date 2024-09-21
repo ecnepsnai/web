@@ -5,38 +5,24 @@ import (
 	"net/http"
 )
 
-func getRealIP(r *http.Request) net.IP {
+// RealRemoteAddr will try to get the real IP address of the incoming connection taking proxies into
+// consideration. This function looks for the `X-Real-IP`, `X-Forwarded-For`, and `CF-Connecting-IP`
+// headers, and if those don't exist will return the remote address of the connection.
+func RealRemoteAddr(r *http.Request) net.IP {
 	if ip := net.ParseIP(r.Header.Get("X-Real-IP")); ip != nil {
 		return ip
 	}
 	if ip := net.ParseIP(r.Header.Get("X-Forwarded-For")); ip != nil {
 		return ip
 	}
-	if ip := net.ParseIP(getIPFromRemoteAddr(r.RemoteAddr)); ip != nil {
+	if ip := net.ParseIP(r.Header.Get("CF-Connecting-IP")); ip != nil {
+		return ip
+	}
+
+	ipStr, _, _ := net.SplitHostPort(r.RemoteAddr)
+	if ip := net.ParseIP(ipStr); ip != nil {
 		return ip
 	}
 
 	return net.IPv4(0, 0, 0, 0)
-}
-
-// getIPFromRemoteAddr strip the port from a socket address (address:port, return address). Also unwraps IPv6 addresses.
-func getIPFromRemoteAddr(remoteAddr string) string {
-	addr := stripPortFromSocketAddr(remoteAddr)
-	if addr[0] == '[' && addr[len(addr)-1] == ']' {
-		return addr[1 : len(addr)-1]
-	}
-
-	return addr
-}
-
-// stripPortFromSocketAddr strip the port from a socket address (address:port, return address)
-func stripPortFromSocketAddr(socketAddr string) string {
-	length := len(socketAddr)
-	for i := length - 1; i >= 0; i-- {
-		if socketAddr[i] == ':' {
-			return socketAddr[0:i]
-		}
-	}
-
-	return socketAddr
 }

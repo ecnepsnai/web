@@ -25,7 +25,9 @@ func (r Request) DecodeJSON(v interface{}) *Error {
 	return nil
 }
 
-// ClientIPAddress returns the IP address of the client. It supports the 'X-Real-IP' and 'X-Forwarded-For' headers.
-func (r Request) ClientIPAddress() net.IP {
-	return getRealIP(r.HTTP)
+// RealRemoteAddr will try to get the real IP address of the incoming connection taking proxies into
+// consideration. This function looks for the `X-Real-IP`, `X-Forwarded-For`, and `CF-Connecting-IP`
+// headers, and if those don't exist will return the remote address of the connection.
+func (r Request) RealRemoteAddr() net.IP {
+	return RealRemoteAddr(r.HTTP)
 }

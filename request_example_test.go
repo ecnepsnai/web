@@ -30,11 +30,11 @@ func ExampleRequest_DecodeJSON() {
 	server.Start()
 }
 
-func ExampleRequest_ClientIPAddress() {
+func ExampleRequest_RealRemoteAddr() {
 	server := web.New("127.0.0.1:8080")
 
 	handle := func(request web.Request) (interface{}, *web.APIResponse, *web.Error) {
-		clientAddr := request.ClientIPAddress().String()
+		clientAddr := request.RealRemoteAddr().String()
 		fmt.Printf("%s\n", clientAddr)
 		return clientAddr, nil, nil
 	}

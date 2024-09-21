@@ -153,7 +153,7 @@ func (s *Server) Stop() {
 
 func (s *Server) notFoundHandle(w http.ResponseWriter, r *http.Request) {
 	log.PWrite(s.Options.RequestLogLevel, "HTTP Request", map[string]interface{}{
-		"remote_addr": getRealIP(r),
+		"remote_addr": RealRemoteAddr(r),
 		"method":      r.Method,
 		"url":         r.URL,
 		"elapsed":     time.Duration(0).String(),
@@ -169,7 +169,7 @@ func (s *Server) notFoundHandle(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) methodNotAllowedHandle(w http.ResponseWriter, r *http.Request) {
 	log.PWrite(s.Options.RequestLogLevel, "HTTP Request", map[string]interface{}{
-		"remote_addr": getRealIP(r),
+		"remote_addr": RealRemoteAddr(r),
 		"method":      r.Method,
 		"url":         r.URL,
 		"elapsed":     time.Duration(0).String(),
@@ -192,7 +192,7 @@ func (s *Server) isRateLimited(w http.ResponseWriter, r *http.Request) bool {
 	s.limitLock.Lock()
 	defer s.limitLock.Unlock()
 
-	sourceIP := getRealIP(r).String()
+	sourceIP := RealRemoteAddr(r).String()
 	limiter := s.limits[sourceIP]
 	if limiter == nil {
 		// Allow MaxRequestsPerSecond every 1 second
@@ -202,12 +202,12 @@ func (s *Server) isRateLimited(w http.ResponseWriter, r *http.Request) bool {
 
 	if !limiter.Allow() {
 		log.PWarn("Rate-limiting request", map[string]interface{}{
-			"remote_addr": getRealIP(r),
+			"remote_addr": RealRemoteAddr(r),
 			"method":      r.Method,
 			"url":         r.URL,
 		})
 		log.PWrite(s.Options.RequestLogLevel, "HTTP Request", map[string]interface{}{
-			"remote_addr": getRealIP(r),
+			"remote_addr": RealRemoteAddr(r),
 			"method":      r.Method,
 			"url":         r.URL,
 			"elapsed":     time.Duration(0).String(),

@@ -85,7 +85,7 @@ func (h HTTP) httpPreHandle(endpointHandle HTTPHandle, options HandleOptions) ro
 					log.PWarn("Rejected request to authenticated HTTP endpoint", map[string]interface{}{
 						"url":         request.HTTP.URL,
 						"method":      request.HTTP.Method,
-						"remote_addr": getRealIP(request.HTTP),
+						"remote_addr": RealRemoteAddr(request.HTTP),
 					})
 					w.Header().Set("Content-Type", "text/html")
 					w.WriteHeader(http.StatusUnauthorized)
@@ -106,7 +106,7 @@ func (h HTTP) httpPreHandle(endpointHandle HTTPHandle, options HandleOptions) ro
 		elapsed := time.Since(start)
 		if !options.DontLogRequests {
 			log.PWrite(h.server.Options.RequestLogLevel, "HTTP Request", map[string]interface{}{
-				"remote_addr": getRealIP(request.HTTP),
+				"remote_addr": RealRemoteAddr(request.HTTP),
 				"method":      request.HTTP.Method,
 				"url":         request.HTTP.URL,
 				"elapsed":     elapsed.String(),
