@@ -14,7 +14,7 @@ var logMutePatterns = [][]byte{
 
 type muteLogger struct {
 	source *logtic.Source
-	level  int
+	level  logtic.LogLevel
 }
 
 func (l muteLogger) Write(p []byte) (n int, err error) {

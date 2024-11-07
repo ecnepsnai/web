@@ -52,7 +52,7 @@ type ServerOptions struct {
 	// Setting this to 0 disables rate limiting.
 	MaxRequestsPerSecond int
 	// The level to use when logging out HTTP requests. Maps to github.com/ecnepsnai/logtic levels. Defaults to Debug.
-	RequestLogLevel int
+	RequestLogLevel logtic.LogLevel
 	// If true then the server will not try to reply with chunked data for a HTTP range request
 	IgnoreHTTPRangeRequests bool
 }
