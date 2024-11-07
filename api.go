@@ -121,7 +121,7 @@ func (a API) apiPostHandle(endpointHandle APIHandle, userData interface{}, optio
 			if r := recover(); r != nil {
 				log.Error("Recovered from panic during API handle: %s", r)
 				w.WriteHeader(500)
-				json.NewEncoder(w).Encode(JSONResponse{Error: CommonErrors.ServerError, Code: 500})
+				json.NewEncoder(w).Encode(JSONResponse{Error: CommonErrors.ServerError})
 			}
 		}()
 
@@ -137,11 +137,9 @@ func (a API) apiPostHandle(endpointHandle APIHandle, userData interface{}, optio
 
 		elapsed := time.Since(start)
 		if err != nil {
-			response.Code = err.Code
 			w.WriteHeader(err.Code)
 			response.Error = err
 		} else {
-			response.Code = 200
 			response.Data = data
 		}
 		if !options.DontLogRequests {
@@ -150,7 +148,6 @@ func (a API) apiPostHandle(endpointHandle APIHandle, userData interface{}, optio
 				"method":      r.HTTP.Method,
 				"url":         r.HTTP.URL,
 				"elapsed":     elapsed.String(),
-				"status":      response.Code,
 			})
 		}
 		if err := json.NewEncoder(w).Encode(response); err != nil {

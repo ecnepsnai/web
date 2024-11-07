@@ -504,8 +504,8 @@ func TestAPILogLevel(t *testing.T) {
 	http.Get(fmt.Sprintf("http://localhost:%d/%s", server.ListenPort, path))
 
 	logtic.Log.Close()
-	debugPattern := regexp.MustCompile(`[0-9\-:TZ]+ \[DEBUG\]\[HTTP\] API Request: elapsed='[^']+' method='GET' remote_addr='[^']+' status=200 url='[^']+'`)
-	infoPattern := regexp.MustCompile(`[0-9\-:TZ]+ \[INFO\]\[HTTP\] API Request: elapsed='[^']+' method='GET' remote_addr='[^']+' status=200 url='[^']+'`)
+	debugPattern := regexp.MustCompile(`[0-9\-:TZ]+ \[DEBUG\]\[HTTP\] API Request: elapsed='[^']+' method='GET' remote_addr='[^']+' url='[^']+'`)
+	infoPattern := regexp.MustCompile(`[0-9\-:TZ]+ \[INFO\]\[HTTP\] API Request: elapsed='[^']+' method='GET' remote_addr='[^']+' url='[^']+'`)
 	f, err := os.OpenFile(logFilePath, os.O_RDONLY, 0644)
 	if err != nil {
 		panic(err)
@@ -566,8 +566,8 @@ func TestAPIHandleNoLog(t *testing.T) {
 	http.Get(fmt.Sprintf("http://localhost:%d/%s", server.ListenPort, path2))
 
 	logtic.Log.Close()
-	path1Pattern := regexp.MustCompile(`[0-9\-:TZ]+ \[DEBUG\]\[HTTP\] API Request: elapsed='[^']+' method='GET' remote_addr='[^']+' status=200 url='/` + path1 + `'`)
-	path2Pattern := regexp.MustCompile(`[0-9\-:TZ]+ \[DEBUG\]\[HTTP\] API Request: elapsed='[^']+' method='GET' remote_addr='[^']+' status=200 url='/` + path2 + `'`)
+	path1Pattern := regexp.MustCompile(`[0-9\-:TZ]+ \[DEBUG\]\[HTTP\] API Request: elapsed='[^']+' method='GET' remote_addr='[^']+' url='/` + path1 + `'`)
+	path2Pattern := regexp.MustCompile(`[0-9\-:TZ]+ \[DEBUG\]\[HTTP\] API Request: elapsed='[^']+' method='GET' remote_addr='[^']+' url='/` + path2 + `'`)
 	f, err := os.OpenFile(logFilePath, os.O_RDONLY, 0644)
 	if err != nil {
 		panic(err)
