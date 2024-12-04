@@ -18,13 +18,13 @@ type Server struct {
 	// The port that this server is listening on. Only populated if the server was created with web.New().
 	ListenPort uint16
 	// The JSON API server. API handles return data or an error, and all responses are wrapped in a common
-	// response object.
+	// response object; [web.JSONResponse].
 	API API
 	// HTTPEasy describes a easy HTTP server. HTTPEasy handles are expected to return a reader and specify the content
 	// type and length themselves.
 	//
 	// The HTTPEasy server supports HTTP range requests, should the client request it and the application provide a
-	// supported Reader (io.ReadSeekCloser).
+	// supported Reader [io.ReadSeekCloser].
 	HTTPEasy HTTPEasy
 	// The HTTP server. HTTP handles are exposed to the raw http request and response writers.
 	HTTP HTTP

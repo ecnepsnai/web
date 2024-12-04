@@ -35,6 +35,6 @@ type HTTPResponse struct {
 	Cookies []http.Cookie
 	// The content type of the response. Will overwrite any 'content-type' header in Headers.
 	ContentType string
-	// The length of the content.
+	// The length of the content. Will overwrite any 'content-length' header in Headers.
 	ContentLength uint64
 }

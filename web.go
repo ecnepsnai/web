@@ -1,11 +1,62 @@
 /*
-Package web is a HTTP server for Golang applications.
+Package web is a full-featured HTTP router and server for Go applications, suitable for serving static files, REST APIs,
+and more.
 
-It is suitable for both front-end and back-end use, being able to deliver static content, act as a REST-ful JSON server,
-and as a WebSocket server.
+Web includes these features:
+  - HTTP range support
+  - Static file serving
+  - Directory listings
+  - Websockets
+  - Per-IP rate limiting
+  - Per-request contextual data
 
-It includes simple controls to allow for user authentication with contextual data being available in every request, and
-provides simple per-user rate-limiting.
+Web offers four APIs for developers to choose from:
+
+# API
+
+API provides everything you need to build poweful REST APIs using JSON. Define your routes and easily accept and return
+data as JSON.
+
+Example:
+
+	router := web.New("[::]:8080")
+	router.API.Get("/users", getUsers, options)
+	router.API.Get("/users/:username", getUsers, options)
+
+For more information, see the documentation of [web.API].
+
+# HTTPEasy
+
+HTTPEasy provides a straightforward interface to accept HTTP requets and return data.
+
+Example:
+
+	router := web.New("[::]:8080")
+	router.HTTPEasy.Get("/index.html", getIndex, options)
+	router.HTTPEasy.Get("/cat.jpg", getKitty, options)
+
+For more information, see the documentation of [web.HTTPEasy].
+
+# HTTP
+
+HTTP provides full access to the original HTTP request, allowing you total control over the response, whatever that may be.
+
+Example:
+
+	router := web.New("[::]:8080")
+	router.HTTP.Get("/index.html", getIndex, options)
+	router.HTTP.Get("/cat.jpg", getKitty, options)
+
+For more information, see the documentation of [web.HTTP].
+
+# Websockets
+
+This package also provides a wrapper for [github.com/gorilla/websocket]
+
+Example:
+
+	router := web.New("[::]:8080")
+	router.Socket("/ws", handleSocket, options)
 */
 package web
 

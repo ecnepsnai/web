@@ -13,7 +13,7 @@ import (
 )
 
 // API describes a JSON API server. API handles return data or an error, and all responses are wrapped in a common
-// response object.
+// response object; [web.JSONResponse].
 type API struct {
 	server *Server
 }

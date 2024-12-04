@@ -21,7 +21,11 @@ type Decoder interface {
 	Decode(v any) error
 }
 
-// DecodeJSON unmarshal the JSON body to the provided interface
+// DecodeJSON unmarshal the JSON body to the provided interface.
+//
+// Equal to calling:
+//
+//	r.Decode(v, json.NewDecoder(r.HTTP.Body))
 func (r Request) DecodeJSON(v any) *Error {
 	return r.Decode(v, json.NewDecoder(r.HTTP.Body))
 }
@@ -41,6 +45,8 @@ func (r Request) Decode(v any, decoder Decoder) *Error {
 // RealRemoteAddr will try to get the real IP address of the incoming connection taking proxies into
 // consideration. This function looks for the `X-Real-IP`, `X-Forwarded-For`, and `CF-Connecting-IP`
 // headers, and if those don't exist will return the remote address of the connection.
+//
+// Will never return nil, if it is unable to get a valid address it will return 0.0.0.0
 func (r Request) RealRemoteAddr() net.IP {
 	return RealRemoteAddr(r.HTTP)
 }

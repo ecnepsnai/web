@@ -12,11 +12,14 @@ import (
 	"github.com/ecnepsnai/web/router"
 )
 
-// HTTPEasy describes a HTTPEasy server. HTTPEasy handles are expected to return a reader and specify the content
-// type and length themselves.
+// HTTPEasy describes a simple to use HTTP router. HTTPEasy handles are expected to return a reader and specify the
+// content type and length themselves.
 //
-// The HTTPEasy server supports HTTPEasy range requests, should the client request it and the application provide a
-// supported Reader (io.ReadSeekCloser).
+// HTTP abstracts many features away from the caller, providing a simpler experience when a only a simple HTTP server
+// is needed. If you require more control, use the HTTP router.
+//
+// The HTTPEasy server supports HTTP range requests, should the client request it and the application provide a
+// supported Reader [io.ReadSeekCloser].
 type HTTPEasy struct {
 	server *Server
 }
