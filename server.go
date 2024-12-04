@@ -38,7 +38,8 @@ type Server struct {
 	// with "Too many requests" as the body.
 	RateLimitedHandler func(w http.ResponseWriter, r *http.Request)
 	// Additional options for the server
-	Options      ServerOptions
+	Options ServerOptions
+
 	router       *router.Server
 	listener     net.Listener
 	shuttingDown bool

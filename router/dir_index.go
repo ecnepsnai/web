@@ -2,7 +2,7 @@ package router
 
 import (
 	"bytes"
-	_ "embed"
+	"encoding/base64"
 	"fmt"
 	"html/template"
 	"io"
@@ -10,17 +10,27 @@ import (
 	"os"
 	"time"
 
+	_ "embed"
+
 	"github.com/ecnepsnai/logtic"
 )
 
 //go:embed dir_index.html
 var dirIndex string
 
+//go:embed dir.png
+var dirImage []byte
+
+//go:embed file.png
+var fileImage []byte
+
 type dirIndexTemplateType struct {
-	Title       string
-	Directories []string
-	Files       []dirIndexFileType
-	IsEmpty     bool
+	Title             string
+	Directories       []string
+	Files             []dirIndexFileType
+	IsEmpty           bool
+	FolderImageBase64 string
+	FileImageBase64   string
 }
 
 type dirIndexFileType struct {
@@ -40,7 +50,9 @@ func (s *impl) makeDirectoryIndex(dir, requestPath string, w http.ResponseWriter
 	}
 
 	templateData := dirIndexTemplateType{
-		Title: title,
+		Title:             title,
+		FolderImageBase64: base64.StdEncoding.EncodeToString(dirImage),
+		FileImageBase64:   base64.StdEncoding.EncodeToString(fileImage),
 	}
 
 	entries, err := os.ReadDir(dir)
