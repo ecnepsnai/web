@@ -1,7 +1,9 @@
 package web
 
 import (
+	"fmt"
 	"net/http"
+	"runtime/debug"
 	"strconv"
 	"time"
 
@@ -104,6 +106,18 @@ func (h HTTP) httpPreHandle(endpointHandle HTTPHandle, options HandleOptions) ro
 			}
 		}
 		start := time.Now()
+		defer func() {
+			if p := recover(); p != nil {
+				log.PError("Recovered from panic during HTTP handle", map[string]interface{}{
+					"error":  fmt.Sprintf("%v", p),
+					"route":  request.HTTP.URL.Path,
+					"method": request.HTTP.Method,
+					"stack":  string(debug.Stack()),
+				})
+				w.WriteHeader(500)
+			}
+		}()
+
 		endpointHandle(w, Request{
 			HTTP:       request.HTTP,
 			Parameters: request.Parameters,

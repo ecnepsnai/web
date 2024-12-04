@@ -452,3 +452,28 @@ func TestHTTPPreHandle(t *testing.T) {
 		t.Fatalf("Unexpected HTTP status code. Expected %d got %d", 200, resp.StatusCode)
 	}
 }
+
+func TestHTTPPanic(t *testing.T) {
+	t.Parallel()
+	server := newServer()
+
+	path := randomString(5)
+
+	handle := func(w http.ResponseWriter, r web.Request) {
+		panic("oh no!")
+	}
+	options := web.HandleOptions{}
+
+	server.HTTP.GET("/"+path, handle, options)
+
+	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/%s", server.ListenPort, path))
+	if err != nil {
+		t.Fatalf("Network error: %s", err.Error())
+	}
+	if resp == nil {
+		t.Fatalf("Nil response returned")
+	}
+	if resp.StatusCode != 500 {
+		t.Fatalf("Unexpected HTTP status code. Expected %d got %d", 500, resp.StatusCode)
+	}
+}

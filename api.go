@@ -2,7 +2,9 @@ package web
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"time"
@@ -124,8 +126,13 @@ func (a API) apiPostHandle(endpointHandle APIHandle, userData interface{}, optio
 
 		start := time.Now()
 		defer func() {
-			if r := recover(); r != nil {
-				log.Error("Recovered from panic during API handle: %s", r)
+			if p := recover(); p != nil {
+				log.PError("Recovered from panic during API handle", map[string]interface{}{
+					"error":  fmt.Sprintf("%v", p),
+					"route":  r.HTTP.URL.Path,
+					"method": r.HTTP.Method,
+					"stack":  string(debug.Stack()),
+				})
 				w.WriteHeader(500)
 				json.NewEncoder(w).Encode(JSONResponse{Error: CommonErrors.ServerError})
 			}

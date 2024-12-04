@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"time"
@@ -155,6 +156,18 @@ func (h HTTPEasy) httpPostHandle(endpointHandle HTTPEasyHandle, userData interfa
 			UserData:   userData,
 		}
 		start := time.Now()
+		defer func() {
+			if p := recover(); p != nil {
+				log.PError("Recovered from panic during HTTPEasy handle", map[string]interface{}{
+					"error":  fmt.Sprintf("%v", p),
+					"route":  request.HTTP.URL.Path,
+					"method": request.HTTP.Method,
+					"stack":  string(debug.Stack()),
+				})
+				w.WriteHeader(500)
+			}
+		}()
+
 		response := endpointHandle(request)
 		elapsed := time.Since(start)
 

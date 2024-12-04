@@ -37,12 +37,13 @@ func (s *Server) socketHandler(endpointHandle SocketHandle, options HandleOption
 	return func(w http.ResponseWriter, r router.Request) {
 		defer func() {
 			if err := recover(); err != nil {
-				log.PError("Recovered from socket panic", map[string]interface{}{
-					"url":    r.HTTP.URL,
+				log.PError("Recovered from panic during websocket handle", map[string]interface{}{
+					"error":  fmt.Sprintf("%v", err),
+					"route":  r.HTTP.URL.Path,
 					"method": r.HTTP.Method,
-					"error":  fmt.Sprintf("%s", err),
+					"stack":  string(debug.Stack()),
 				})
-				log.Debug("%s", debug.Stack())
+				w.WriteHeader(500)
 			}
 		}()
 
