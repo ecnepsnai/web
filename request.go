@@ -8,15 +8,28 @@ import (
 
 // Request describes an API request
 type Request struct {
-	HTTP       *http.Request
+	// The original HTTP request
+	HTTP *http.Request
+	// URL path parameters (not query parameters). Keys do not include the ':' or '*'.
 	Parameters map[string]string
-	UserData   interface{}
+	// User data provided from the result of the AuthenticateRequest method on the handle options
+	UserData any
+}
+
+// Decoder describes a generic interface that has a Decode function
+type Decoder interface {
+	Decode(v any) error
 }
 
 // DecodeJSON unmarshal the JSON body to the provided interface
-func (r Request) DecodeJSON(v interface{}) *Error {
+func (r Request) DecodeJSON(v any) *Error {
+	return r.Decode(v, json.NewDecoder(r.HTTP.Body))
+}
+
+// Decode will unmarshal the request body to v using the given decoder
+func (r Request) Decode(v any, decoder Decoder) *Error {
 	if err := json.NewDecoder(r.HTTP.Body).Decode(v); err != nil {
-		log.PError("Invalid JSON request", map[string]interface{}{
+		log.PError("Invalid request", map[string]interface{}{
 			"error": err.Error(),
 		})
 		return CommonErrors.BadRequest
