@@ -406,3 +406,49 @@ func TestHTTPRateLimit(t *testing.T) {
 	doTest(200)
 	doTest(429)
 }
+
+func TestHTTPPreHandle(t *testing.T) {
+	t.Parallel()
+	server := newServer()
+
+	path200 := randomString(5)
+	path400 := randomString(5)
+
+	handle := func(w http.ResponseWriter, r web.Request) {
+		w.WriteHeader(200)
+	}
+	options := web.HandleOptions{
+		PreHandle: func(w http.ResponseWriter, request *http.Request) error {
+			if request.URL.Path == "/"+path400 {
+				w.WriteHeader(400)
+				return fmt.Errorf("boo")
+			}
+			return nil
+		},
+	}
+
+	server.HTTP.GET("/"+path200, handle, options)
+	server.HTTP.GET("/"+path400, handle, options)
+
+	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/%s", server.ListenPort, path400))
+	if err != nil {
+		t.Fatalf("Network error: %s", err.Error())
+	}
+	if resp == nil {
+		t.Fatalf("Nil response returned")
+	}
+	if resp.StatusCode != 400 {
+		t.Fatalf("Unexpected HTTP status code. Expected %d got %d", 400, resp.StatusCode)
+	}
+
+	resp, err = http.Get(fmt.Sprintf("http://localhost:%d/%s", server.ListenPort, path200))
+	if err != nil {
+		t.Fatalf("Network error: %s", err.Error())
+	}
+	if resp == nil {
+		t.Fatalf("Nil response returned")
+	}
+	if resp.StatusCode != 200 {
+		t.Fatalf("Unexpected HTTP status code. Expected %d got %d", 200, resp.StatusCode)
+	}
+}

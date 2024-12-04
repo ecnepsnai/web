@@ -61,6 +61,12 @@ func (a API) registerAPIEndpoint(method string, path string, handle APIHandle, o
 
 func (a API) apiPreHandle(endpointHandle APIHandle, options HandleOptions) router.Handle {
 	return func(w http.ResponseWriter, request router.Request) {
+		if options.PreHandle != nil {
+			if err := options.PreHandle(w, request.HTTP); err != nil {
+				return
+			}
+		}
+
 		if a.server.isRateLimited(w, request.HTTP) {
 			return
 		}

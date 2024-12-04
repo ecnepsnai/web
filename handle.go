@@ -24,6 +24,16 @@ type HandleOptions struct {
 	// Return nil to signal an unauthenticated request, which will be rejected.
 	// Objects returned will be passed to the handle as the UserData object.
 	AuthenticateMethod func(request *http.Request) interface{}
+	// PreHandle is an optional method that is called immediately upon receiving the HTTP request, before authentication
+	// and before rate limit checks. This method allows servers to provide early handling of a request before any
+	// processing happens.
+	//
+	// The value of the error is not used, only if an error or nil was returned. If an error is returned then no more
+	// processing is performed. It is assumed that a response will have been written to w.
+	//
+	// If nil is returned then the request will continue normally, no status should have been written to w. Any headers
+	// added may be overwritten by the handle.
+	PreHandle func(w http.ResponseWriter, request *http.Request) error
 	// UnauthorizedMethod method called when an unauthenticated request occurs (AuthenticateMethod returned nil)
 	// to customize the response seen by the user.
 	// Optional - Omit this to have a default response.

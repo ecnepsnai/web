@@ -97,6 +97,12 @@ func (h HTTPEasy) registerHTTPEasyEndpoint(method string, path string, handle HT
 
 func (h HTTPEasy) httpPreHandle(endpointHandle HTTPEasyHandle, options HandleOptions) router.Handle {
 	return func(w http.ResponseWriter, request router.Request) {
+		if options.PreHandle != nil {
+			if err := options.PreHandle(w, request.HTTP); err != nil {
+				return
+			}
+		}
+
 		if h.server.isRateLimited(w, request.HTTP) {
 			return
 		}

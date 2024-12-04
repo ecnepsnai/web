@@ -46,6 +46,12 @@ func (s *Server) socketHandler(endpointHandle SocketHandle, options HandleOption
 			}
 		}()
 
+		if options.PreHandle != nil {
+			if err := options.PreHandle(w, r.HTTP); err != nil {
+				return
+			}
+		}
+
 		var userData interface{}
 
 		if s.isRateLimited(w, r.HTTP) {
