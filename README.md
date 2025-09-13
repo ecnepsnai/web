@@ -1,3 +1,6 @@
+> [!IMPORTANT]  
+> This package is only receiving bug and security fixes - No new features will be added. The evolution of this package is [git.ecn.io/ian/w3](https://git.ecn.io/ian/w3)
+
 # Web
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/ecnepsnai/web?style=flat-square)](https://goreportcard.com/report/github.com/ecnepsnai/web)
@@ -30,3 +33,14 @@ This package allows you modify the routing table ad-hoc, even while the server i
 # Documentation & Examples
 
 For full documentation including examples please see the official [package documentation](https://pkg.go.dev/github.com/ecnepsnai/web)
+
+
+
+
+
+
+
+
+
+
+
